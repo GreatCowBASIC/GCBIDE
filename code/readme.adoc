@@ -1,0 +1,86 @@
+= GCBASIC Essential IDE Change Log
+
+== Version 1.0 (Initial Release, Pre-May 2025)
+
+*Initial Features*:
+* Implemented core IDE functionality with `QTabWidget` for multi-tab editing of `.GCB` files.
+* Added syntax highlighting via `SyntaxHighlighter` class using `GCB.tmLanguage.json` for GCBASIC code.
+* Supported basic file operations: New, Open, Save, Save As, Close, and Print.
+* Included `TerminalWindow` for logging IDE actions and task outputs.
+* Added menu system with File, Edit, IDE Tasks, IDE Settings, and Help menus.
+* Integrated task execution from `tasks.json` with support for GCBASIC compiler tasks.
+* Implemented line number display, word wrap, and theme switching (light/dark).
+* Added recent files tracking and settings persistence in `~/.superide/ide_settings.json`.
+
+== Version 1.1 (May 15-16, 2025)
+
+*Enhancements*:
+* Improved syntax highlighting by making `GCB.tmLanguage.json` patterns case-insensitive (May 15, 2025).
+* Added F4 shortcut to open the IDE Tasks menu programmatically, resolving the F4 shortcut issue (May 16, 2025).
+* Enhanced `parse_tasks_json` to strip comments line-by-line, resolving Tasks to Menu option issue (May 16, 2025).
+
+*Bug Fixes*:
+* Fixed `QTextCursor::setPosition: Position '174' out of range` error in `SyntaxHighlighter`, resolving a syntax error issue (May 15, 2025).
+* Corrected comment highlighting for `REM` and `' REM` by reordering patterns in `GCB.tmLanguage.json` (May 15, 2025).
+* Resolved broken Undo/Ctrl+Z by grouping formatting operations in `SyntaxHighlighter` (May 15, 2025).
+* Fixed console warning about invisible window in IDE Tasks menu by using `QMenu.popup` (May 16, 2025).
+* Corrected `[WinError 267]` for "Make HEX [F6]" task by converting VS Code syntax to Windows-compatible paths in `execute_task`, addressing duplicate `execute_task` issues (May 16, 2025).
+
+== Version 1.2 (May 16-17, 2025)
+
+*Enhancements*:
+* Added single-instance checking with a socket lock to prevent multiple IDE instances, reducing external modification conflicts (May 16, 2025).
+* Improved external file change detection with refined `mtime` tracking and user choice persistence in `check_file_changes` (May 16, 2025).
+* Enhanced `execute_task` to launch non-"make" tasks non-modally with `subprocess.Popen` (May 17, 2025).
+
+*Bug Fixes*:
+* Fixed unnecessary save prompts for unmodified files by preserving document modified state during highlighting (May 16, 2025).
+* Resolved `[ERROR] Error executing task: 'IDE' object has no attribute 'user_scrolled'` by using `self.terminal.user_scrolled` (May 17, 2025).
+* Fixed log display issue for "make" tasks by ensuring all lines of `%temp%\gcbasic.log` are shown (May 17, 2025).
+* Corrected reload prompt after save by clearing file cache and updating `mtime` in `save_file` and `save_file_as`, resolving the reload prompt after save issue (May 16, 2025).
+* Fixed double tab closure by disconnecting/reconnecting `tabCloseRequested` signal in `update_background_after_close`, resolving the double tab closure issue (May 16, 2025).
+
+== Version 1.3 (May 17, 2025)
+
+*Enhancements*:
+* Added `get_selected_text` method with Ctrl+E shortcut to retrieve selected text (May 17, 2025).
+* Improved `check_external_modifications` handling by syncing menu item state in `load_settings` and guarding `check_file_changes` calls (May 17, 2025).
+* Enhanced `execute_task` to support `${command:extension.commandvariable.selectedText}` placeholder replacement with initial list comprehension approach (May 17, 2025).
+
+*Bug Fixes*:
+* Fixed external modification setting sync issue for menu item state (May 17, 2025).
+* Resolved `[INFO] def check_file_changes` log when `check_external_modifications` was `False` by moving log and guarding calls, addressing the check_file_changes invocation issue (May 17, 2025).
+* Addressed initial placeholder replacement failure in `execute_task` by correcting list-based replacement, though issues persisted (May 17, 2025).
+
+== Version 1.4 (May 17, 2025)
+
+*Enhancements*:
+* Added detailed logging in `execute_task` to debug `${command:extension.commandvariable.selectedText}` placeholder replacement, including raw string and hex representations of arguments (May 17, 2025, 11:49 AM BST).
+* Implemented regex-based placeholder replacement in `execute_task` using `re.sub` to handle potential string mismatches or hidden characters, improving robustness (May 17, 2025, 11:49 AM BST).
+* Added warning log in `execute_task` when the placeholder is present but no text is selected, enhancing user feedback (May 17, 2025, 11:49 AM BST).
+
+*Bug Fixes*:
+* Fixed persistent `${command:extension.commandvariable.selectedText}` placeholder replacement failure in `execute_task` by using regex to match the placeholder, resolving the issue with task argument substitution (May 17, 2025, 11:49 AM BST).
+
+== Version 1.5 (May 18, 2025)
+
+*Enhancements*:
+* Added support for remembering the last accessed folder in file operations, storing the directory in `self.settings['last_folder']` within `open_file_by_path`, `save_file`, and `save_file_as`. Updated `open_file` to use `last_folder` as the default `QFileDialog` directory, with fallback to the home directory if invalid (May 18, 2025, 10:21 AM BST).
+* Enhanced `load_settings` to initialize `last_folder` with the user's home directory if not set, ensuring persistence across sessions (May 18, 2025, 10:21 AM BST).
+* Improved line number area width in `CustomTextEdit` to dynamically adjust based on document line count, accommodating four-digit line numbers (1000+ lines) using `QFontMetrics` and a scalable formula (May 18, 2025, 10:21 AM BST).
+* Removed redundant methods `TextBlockData.get_text`, `IDE.T1execute_task`, and `IDE.show_recent_files_in_settings` to streamline the codebase, pending confirmation on `IDE.set_theme` usage (May 18, 2025, 10:21 AM BST).
+
+*Bug Fixes*:
+* Fixed line number truncation at 1000 lines by implementing dynamic width calculation in `CustomTextEdit.line_number_area_width`, ensuring sufficient space for four-digit line numbers and beyond (May 18, 2025, 10:21 AM BST).
+
+== Notes
+
+* All versions maintain compatibility with GCBASIC compiler tasks and `.GCB` file editing.
+* The IDE uses `tasks.json` for task configurations, with ongoing improvements in placeholder handling, particularly for `${command:extension.commandvariable.selectedText}`.
+* The clarification of `if not` syntax in Python was provided to support development but did not result in code changes (May 17, 2025).
+* Version 1.5 enhances user experience with persistent folder tracking and resolves line number display issues for large files, while cleaning up unused code to improve maintainability.
+* Future updates may focus on further placeholder support, performance optimizations, enhanced logging for task outputs, and confirming the intended use of `IDE.set_theme`.
+
+
+
+        python -m PyInstaller --onefile --add-data "app_icon.ico;." --add-data "GCstudio.png;." --add-data "tasks.json;." --add-data "GCB.tmLanguage.json;."   --noconsole --icon=app_icon.ico superider.py

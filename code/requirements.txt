@@ -1,0 +1,188 @@
+ 1. Core Functionality
+- Tab System: Support multiple documents (tabs) with independent contexts and file operations per tab.
+- Tab System: Ability to close any specific tab
+- Tab System: Context menu on a specific tab shows 'Copy Path'. Copy the specific full file name including the directory path to cut/paste buffer.
+- Line Numbers: Display line numbers for easier navigation in search/replace operations.  With this controlled in the IDE Setting menu.
+- All the normal ALT keys
+- Menu: File/Edit/IDE Settings/Help
+- Command line parameter to accept file to open
+- Default screen size to 75% of screen size. Add the screen size and position parameters to the Settings Menu
+- Remember the screen size on exit and restart. 
+- Ensure the application is always visible and the menu are always visible.
+- Add Exit to File menu
+
+ 2. File Handling
+- New file. Add a new file with the text "/*\n A GBASIC source program\n*/" 
+- Open/Closed: Open files based on file type or content (*.GCB, `.txt`, `.csv`, `.docx`), default to *.GCB
+- File Browser Integration: Built-in file browser with drag-and-drop functionality.
+- Recent Files with shortcut CTRL-R
+- Copy-paste and undo-redo etc.
+- Save file on exit, optional ask use for configuration based upon IDE Setting
+- Tab and Alt-Tab indents N*1 spaces or decreases N*1 spaces respectively. Where N is part of the user settings.  Select where N = 2/4 or 8.
+- Single instance of any one file
+- Reload instance of external changed file. If internal existing has also been updated challenge user to update/ignore.  Remember this choice on a file by file, basis on a session by session basis. 
+- Print dialog
+- Make sure files have changed before asking to save file(s) on exit
+- Add to the File menu Save all.  Save all files if the file has changed.
+
+	
+ 3. Edit Menu
+- Find/Replace: Implement search with multiple text patterns and case-sensitive options.
+- Case Folding: Toggle between upper/lowercase views for better readability.
+- Goto Line number: Only works when Word Wrap is OFF. And, hilite whole line when located.
+- Toggle line or block comments with "// " or "/*" & "*/".
+  - Line comments should be at the same position as the select text.
+- All Terminal Window Options shown
+
+ 4. Performance Optimization
+- Caching Mechanism: Cache frequently used files to reduce load times.
+
+ 5. User Interface
+- Theming: Allow selection of dark/light themes with preference saving.
+- Customization Options: Permit custom color schemes, font sizes, and toolbars customization all setting in the IDE Settings menu
+- Ensure all menus, line numbering and dialogs use the common font size
+- Set default font to 12
+- Save settings to the user profile
+- IDE Settings a check box control that controls the Terminal Windows is shown or not.  At the moment if the user closes the Terminal Window they cannot restore.  Also, add a Terminal Window control that control the percentage size, add to Settings.
+- Background image to the main Window.  GCstudio.png in the local folder. Handle the file being missing by showing "GCBASIC Essential IDE" in a large font, scale to fit the available window.
+
+
+ 6. Output
+- Export/Import: Export tabs as various formats (e.g., `.txt`, `.csv`) and import external files by
+drag-and-drop.
+
+ 7. Themes
+- Theme Selection: Prefer dark/light themes with theme saving options.
+- Custom Themes: Allow users to create and save custom color schemes.
+
+8. Terminal Window
+- Used to show [INFO]
+- Used to show [ERRORS]
+- Context menu of Copy Line/Copy All/Clear Terminal
+- Terminal Window must be adjustable within the overall application
+- Terminal Window must be able to Pop-Out for resizing
+- Terminal Window must display selectable URL to  open default browser
+
+9. IDE Settings
+- Color Scheme
+- Show line numbers
+- Word Wrap
+- Show Info logs
+- Show Error logs
+- Show Save File Confirmation
+- Window Size X
+- Window Size Y
+- Menu Font Size
+- Recent File Font Size
+- Tab Font Size
+ 
+10. Non requirements
+- Docx support
+- File Export Options
+- No file browser window
+- Browser support
+
+
+11. Implement language file support that can be used for highlighting specific words in the Text Window ( not the Terminal Windows).  Review the attached.  And, use for color coding.
+Assume the source location is %GCBASIC_INSTALL_PATH%vscode\data\extensions\MierEngineering.GreatCowBasic-1.0.0\syntaxes\GCB.tmLanguage.json   Where %GCBASIC_INSTALL_PATH% is an operating system variable.  
+Add the file location as a setting to  the IDE_SETTINGS so the user can change.  If this JSON file does not exist at the specified location then look in the local folder.
+Normalise the JSON file.  Changing "\\" to "\" and ensure start and end of source parameters with double quotes are handled.
+
+12. I need to add a menu item function F4 to my IDE.
+
+When pressing F4 the list of available items from the source JSON file should be listed, then, if an items is selected .. execute it using the operating system call.
+
+You may have to normalise the file locations.
+
+The file is located at C:\GCstudio\vscode\data\user-data\User\tasks.json however add a setting menu , and, the secondary location is the local folder and then finally allow the selection from another location in the UI.
+
+The format of the JSON file is below.
+
+      {
+            "label": "Make HEX [F6]",
+            "type": "shell",
+            "command": "${env:GCBASIC_INSTALL_PATH}\\gcbasic\\GCBASIC.EXE",
+            "args": [
+                "'${file}'",
+                "/NP",
+                "/S:use.ini",
+                "/F:N",
+                "/P:"
+            ],
+            "options": {
+                "cwd": "${env:GCBASIC_INSTALL_PATH}\\gcbasic\\"
+            },
+            "problemMatcher": [
+                {
+                    "owner": "gcb",
+                    "source": "gcb",
+                    "fileLocation": [
+                        "autoDetect",
+                        "${env:GCBASIC_INSTALL_PATH}\\gcbasic\\include\\lowlevel\\"
+                    ],
+                    "pattern": [
+                        {
+                            "severity": 3,
+                            "file": 1,
+                            "line": 2,
+                            "message": 4,
+                            "regexp": "^(.*)\\s\\*\\*\\s+\\((\\d+)\\):\\s+(Warning|Error):\\s+(.+)$"
+                        }
+                    ]
+                },
+                {
+                    "owner": "gcb",
+                    "source": "gcb",
+                    "fileLocation": [
+                        "autoDetect",
+                        "${env:GCBASIC_INSTALL_PATH}\\gcbasic\\include\\"
+                    ],
+                    "pattern": [
+                        {
+                            "severity": 3,
+                            "file": 1,
+                            "line": 2,
+                            "message": 4,
+                            "regexp": "^(.*)\\s\\*\\s+\\((\\d+)\\):\\s+(Warning|Error):\\s+(.+)$"
+                        }
+                    ]
+                },
+                {
+                    "owner": "gcb",
+                    "source": "gcb",
+                    "fileLocation": [
+                        "relative",
+                        "${fileDirname}"
+                    ],
+                    "pattern": [
+                        {
+                            "severity": 3,
+                            "file": 1,
+                            "line": 2,
+                            "message": 4,
+                            "regexp": "^(.*)\\s+\\((\\d+)\\):\\s+(Warning|Error):\\s+(.+)$"
+                        }
+                    ]
+                }
+            ],
+            "group": "build",
+            "presentation": {
+                "showReuseMessage": false,
+                "clear": true,
+                "revealProblems": "onProblem"
+            }
+   
+14.  Please add new capability.
+
+For any task that is determine to be valid in the Task list ( imported ) and that matches the following criteria add a Shortcut key to the appropiate function key.
+
+1. The task label contains a ]
+2. The task contains a [
+3. The function key to be assigned is determined with the "[" and "]".
+
+A valid response could be F5, F6 and Shift F7.  Parse for F key valid, and parse for shift ( case insensitive ) to determine a shortcut.
+
+All other functionaility to remain as-is. Specficially the currently assigned keyboard shortcuts and IDE menus, and context menus.
+
+Therefore this is a dynamic assignment.  If the Tasks source JSON has the criteria. Assign the short cut.
+

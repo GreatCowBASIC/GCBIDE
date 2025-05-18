@@ -1,0 +1,36 @@
+/*      
+
+
+        python -m PyInstaller --onefile --add-data "app_icon.ico;." --add-data "GCstudio.png;." --add-data "tasks.json;." --add-data "GCB.tmLanguage.json;."   --noconsole --icon=app_icon.ico superider.py
+
+
+        python -m PyInstaller --onefile --add-data "dist\app_icon.ico;." --add-data "dist\GCstudio.png;."   --noconsole --icon=dist\app_icon.ico superideb.py
+
+
+
+        Version B is editor pre-color coding but with Logo, improved settings control, toggles control for easy of use, 
+        Version C is Save As, improved log control, context menu corrected, masked Appearance/Scheme, ability to move tabs left/right, indepented font control.
+        Version D is the first version where the colors work.  SLow to scroll. Case Sentitive
+        
+C:\Users\admin\.superide\tasks.json
+            
+        To be added:
+             Tasks:  C:\GCstudio\vscode\data\user-data\User\tasks.json
+             Highliting.  Use C:\GCstudio\vscode\data\extensions\MierEngineering.GreatCowBasic-1.0.0\syntaxes\GCB.tmLanguage.json
+            
+       C:\Users\admin\OneDrive\Desktop\GCB.tmLanguage.json
+
+*/
+
+#chip PIC16F1937,32
+// #option explicit
+
+#define MYCONSTANT1    
+#define  myconstant2
+// dim mystring as String * 8
+mystring = "asdasdas"
+Do
+
+Loop
+
+
