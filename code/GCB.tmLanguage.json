@@ -88,6 +88,13 @@
             "case_insensitive": true
         },
         {
+            "match": "\\b(LATA\\.[0-7]|LATB\\.[0-7]|LATC\\.[0-7]|LATD\\.[0-7]|LATE\\.[0-7]|LATF\\.[0-7]|LATG\\.[0-7])\\b",
+            "color": "#4EC9B0",
+            "bold": true,
+            "italic": false,
+            "case_insensitive": true
+        },
+        {
             "match": "\\b[0-9]+\\s*\\b",
             "color": "#FF0000",
             "bold": false,
