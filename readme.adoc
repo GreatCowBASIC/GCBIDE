@@ -65,22 +65,25 @@
 == Version 1.5 (May 18, 2025)
 
 *Enhancements*:
-* Added support for remembering the last accessed folder in file operations, storing the directory in `self.settings['last_folder']` within `open_file_by_path`, `save_file`, and `save_file_as`. Updated `open_file` to use `last_folder` as the default `QFileDialog` directory, with fallback to the home directory if invalid (May 18, 2025, 10:21 AM BST).
+* Added support for remembering the last accessed folder in file operations, storing the directory in `self.settings['last_folder']` within `open_file_by_path`, `save_file`, and `save_file_as`. Updated `open_file` to use `last_folder` as the default `QFileDialog` directory, with fallback to the home directory if invalid, enhancing user experience by maintaining folder context across sessions (May 18, 2025, 10:21 AM BST).
 * Enhanced `load_settings` to initialize `last_folder` with the user's home directory if not set, ensuring persistence across sessions (May 18, 2025, 10:21 AM BST).
-* Improved line number area width in `CustomTextEdit` to dynamically adjust based on document line count, accommodating four-digit line numbers (1000+ lines) using `QFontMetrics` and a scalable formula (May 18, 2025, 10:21 AM BST).
-* Removed redundant methods `TextBlockData.get_text`, `IDE.T1execute_task`, and `IDE.show_recent_files_in_settings` to streamline the codebase, pending confirmation on `IDE.set_theme` usage (May 18, 2025, 10:21 AM BST).
+* Improved line number area width in `CustomTextEdit` to dynamically adjust based on document line count, accommodating four-digit line numbers (1000+ lines) using `QFontMetrics` and a scalable formula, improving readability for large files (May 18, 2025, 10:21 AM BST).
 
 *Bug Fixes*:
 * Fixed line number truncation at 1000 lines by implementing dynamic width calculation in `CustomTextEdit.line_number_area_width`, ensuring sufficient space for four-digit line numbers and beyond (May 18, 2025, 10:21 AM BST).
+
+== Version 1.6 (May 19, 2025)
+
+*Enhancements*:
+* Implemented recent files storage in `GCstudio.mrf.json`, located in the directory specified by `os.environ.get("GCBASIC_INSTALL_PATH")`, with the path stored in `ide_settings.json` under `recent_files_path`. Ensured the file is created if absent and padded to 10 entries for `RecentName` and `RecentDir` with empty strings, providing robust persistence and a consistent user experience for recent files tracking (May 19, 2025, 09:02 AM BST).
+* Removed redundant methods `TextBlockData.get_text`, `IDE.T1execute_task`, and `IDE.show_recent_files_in_settings` to streamline the codebase, reducing maintenance overhead, pending confirmation on `IDE.set_theme` usage (May 19, 2025, 09:02 AM BST).
+
+*Bug Fixes*:
+* Fixed `NameError: name 'entry' is not defined` in `save_recent_files` by correcting the list comprehension to properly index `self.recent_files`, ensuring `RecentName` and `RecentDir` lists in `GCstudio.mrf.json` are always padded to 10 entries with empty strings, completing the reliable recent files persistence implementation (May 19, 2025, 09:02 AM BST).
 
 == Notes
 
 * All versions maintain compatibility with GCBASIC compiler tasks and `.GCB` file editing.
 * The IDE uses `tasks.json` for task configurations, with ongoing improvements in placeholder handling, particularly for `${command:extension.commandvariable.selectedText}`.
 * The clarification of `if not` syntax in Python was provided to support development but did not result in code changes (May 17, 2025).
-* Version 1.5 enhances user experience with persistent folder tracking and resolves line number display issues for large files, while cleaning up unused code to improve maintainability.
-* Future updates may focus on further placeholder support, performance optimizations, enhanced logging for task outputs, and confirming the intended use of `IDE.set_theme`.
-
-
-
-        python -m PyInstaller --onefile --add-data "app_icon.ico;." --add-data "GCstudio.png;." --add-data "tasks.json;." --add-data "GCB.tmLanguage.json;."   --noconsole --icon=app_icon.ico superider.py
+* Future updates may focus on further placeholder support, performance optimizations, enhanced logging for task outputs, confirming the intended use of `IDE.set_theme`, and addressing `libpng` warnings for `GCstudio.png`.
