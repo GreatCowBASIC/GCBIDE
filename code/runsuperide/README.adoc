@@ -1,0 +1,115 @@
+= runsuperide.exe README
+:author: Evan R. Venn
+:date: May 19, 2025
+:toc:
+
+== Overview
+
+`runsuperide.exe` is a standalone Windows executable that searches for a batch file named `superide.bat` (case-insensitive) on eligible drives and executes it if found. If the file is not found, it displays a pop-up message: "SuperIDE not found." The executable targets removable drives (e.g., USB drives), non-system drives classified as fixed (type 3), and USB drives, while excluding the system drive and network drives.
+
+== Requirements
+
+=== Operating System
+- *Windows*: The executable is designed for Windows, using Windows-specific APIs and drive letter conventions (e.g., H:\).
+
+=== Permissions
+- The executable requires read access to drives and execute permissions for `superide.bat`.
+- Running as Administrator may be necessary if access errors occur when reading drives or executing the batch file.
+
+== Usage
+
+Run the executable from the command line or by double-clicking:
+
+```cmd
+runsuperide.exe [--debug]
+```
+
+- *--debug*: Optional flag to enable detailed logging to the console. Without this flag, only errors are logged.
+
+Example with debug output:
+```cmd
+runsuperide.exe --debug
+```
+
+The executable will:
+1. Search eligible drives for `superide.bat` (case-insensitive, e.g., `superide.bat`, `SUPERIDE.BAT`).
+2. Execute the first instance found.
+3. Display a pop-up if not found or if execution fails.
+
+== Solution
+
+=== Functionality
+The executable performs the following steps:
+
+1. *Identify Eligible Drives*:
+   - Lists all available drive letters (e.g., C:\, H:\) using Windows file system checks.
+   - Filters drives to include only those that are:
+     - Not the system drive (typically C:\, determined via Windows environment variables).
+     - Not network drives (excluded based on disk partition properties).
+     - Either removable (type 2), CDROM (type 5), fixed (type 3), or identified as a USB drive via Windows Management Instrumentation (WMI).
+2. *Search for superide.bat*:
+   - Recursively searches each eligible drive for `superide.bat`.
+   - Matches the file case-insensitively (e.g., `superide.bat`, `SUPERIDE.BAT`).
+3. *Execute or Notify*:
+   - Executes the batch file using Windows shell execution.
+   - Displays a pop-up (`SuperIDE not found`) if no file is found, or an error pop-up if execution fails.
+
+=== Constraints
+- *Windows-Only*: Relies on Windows APIs and drive letters, making it incompatible with Linux or macOS.
+- *Drive Access Permissions*: May fail to access drives or execute the batch file if run without sufficient permissions (e.g., non-admin user).
+- *Single File Execution*: Only the first `superide.bat` found is executed; subsequent matches are ignored.
+- *Drive Classification*: Some USB drives (e.g., external SSDs like Crucial500) may be misclassified as fixed (type 3) by Windows, requiring inclusion of non-system fixed drives.
+- *WMI Reliability*: USB detection via WMI may fail for some drives if hardware properties are not correctly reported.
+
+=== Assumptions
+- *Drive Letters*: Assumes drives are mounted with standard Windows drive letters (A:\ to Z:\).
+- *superide.bat*: Assumes the batch file is a valid, executable Windows batch file located on an eligible drive.
+- *System Drive*: Assumes the system drive is correctly identified by Windows (typically C:\).
+- *Drive Eligibility*: Assumes non-system drives that are fixed (type 3), removable, CDROM, or USB are valid targets, to account for misclassified USB drives like H:.
+- *User Intent*: Assumes the user wants to search all non-system, non-network drives that are either removable, USB, or fixed to ensure misclassified drives are included.
+
+=== Design Considerations
+- *Case-Insensitive Search*: Ensures `superide.bat`, `SUPERIDE.BAT`, or any case variation is found.
+- *Debug Logging*: Controlled via `--debug` flag to provide detailed output for troubleshooting (e.g., drive types, WMI results) while keeping normal runs silent.
+- *Error Handling*:
+  - Catches drive access errors (e.g., permission issues) and continues searching other drives.
+  - Displays user-friendly pop-ups for execution failures or file not found.
+- *Relaxed Criteria*: Includes non-system fixed (type 3) drives to handle cases like H: (misclassified as fixed), alongside removable and USB drives.
+- *No Hardcoding*: Avoids hardcoding specific drives (e.g., H:\) to maintain generality.
+- *Standalone Executable*: Bundles all dependencies, eliminating the need for Python or external libraries.
+
+== Troubleshooting
+
+- *Executable Doesn’t Find superide.bat*:
+  - Run with `--debug` to check which drives are searched:
+    ```cmd
+    runsuperide.exe --debug
+    ```
+  - Verify the drive is mounted (`dir H:\`) and the file exists (`H:\superide.bat`).
+  - Check drive eligibility in logs (e.g., `Accepted (type 3)` for H:).
+- *Permission Errors*:
+  - Run as Administrator:
+    ```cmd
+    runsuperide.exe --debug
+    ```
+  - Ensure read access to the drive and execute permissions for the batch file.
+- *Drive Not Recognized*:
+  - Confirm drive type:
+    ```cmd
+    wmic logicaldisk where "DeviceID='H:'" get DriveType
+    ```
+  - Check USB status:
+    ```cmd
+    wmic diskdrive get DeviceID, Caption, PNPDeviceID, MediaType
+    ```
+- *File Access Test*:
+  - Verify the file is accessible:
+    ```cmd
+    type H:\superide.bat
+    ```
+
+== License
+This executable is provided as-is with no warranty. Use at your own risk.
+
+== Contact
+For issues or feedback, please refer to the project repository (if applicable) or contact the executable author.
