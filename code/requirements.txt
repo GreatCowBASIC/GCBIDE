@@ -186,3 +186,4 @@ All other functionaility to remain as-is. Specficially the currently assigned ke
 
 Therefore this is a dynamic assignment.  If the Tasks source JSON has the criteria. Assign the short cut.
 
+15. Use the recent files from GCStudio.
