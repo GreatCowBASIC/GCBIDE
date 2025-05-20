@@ -1,5 +1,17 @@
 = GCBASIC Essential IDE Change Log
 
+== Version 1.7 (May 20, 2025)
+
+*Button Bar Improvements*:
+* Set default button bar shortcuts and icons for new installations: `[F5]` for "Make HEX and Flash" (`hexflash.png`), `[F6]` for "Make HEX" (`hex.png`), `[F7]` for "Assemble" (`asm.png`), and `[F1]` for "Help" (`help.png`). Makes setup easier for new users with ready-to-use buttons. (May 20, 2025, 08:10 AM BST)
+* Reverted button size adjustment based on PNG image dimensions to use a fixed size from settings (`button_bar.size`, default 24 pixels). Ensures consistent button sizes; increase `size` in settings for larger buttons for visually impaired users. (May 20, 2025, 07:57 AM BST)
+* Fixed Alt+F4 to hide the button bar and close the IDE in one press, improving usability by ensuring a smooth exit from any focused window. Added focus shifting after button clicks or drags to keep the main IDE window active. (May 20, 2025, 07:39 AM BST)
+* Fixed button clicks to reliably trigger tasks (e.g., `[F5]` for "Make HEX and Flash"), resolving issues where clicks were intercepted by drag-and-drop logic. (May 19, 2025, 09:25 AM BST)
+
+*Enhancements*:
+* Added debug logging for button bar actions (clicks, drags, Alt+F4) with `"BC: "` prefix, controlled by `SHOW_BAR_CONTROL` global variable, to help troubleshoot issues. (May 19, 2025, 09:32 AM BST)
+* Optimized button bar position saving to occur only on drag release, reducing unnecessary file writes for better performance. (May 19, 2025, 09:36 AM BST)
+
 == Version 1.6 (May 19, 2025)
 
 *Enhancements*:
@@ -24,7 +36,7 @@
 *Enhancements*:
 * Added detailed logging in `execute_task` to debug `${command:extension.commandvariable.selectedText}` placeholder replacement, including raw string and hex representations of arguments (May 17, 2025, 11:49 AM BST).
 * Implemented regex-based placeholder replacement in `execute_task` using `re.sub` to handle potential string mismatches or hidden characters, improving robustness (May 17, 2025, 11:49 AM BST).
-* Added warning log in `execute_task` when the placeholder is present but no text is selected, enhancing user feedback (May 17,  Pipes 2025, 11:49 AM BST).
+* Added warning log in `execute_task` when the placeholder is present but no text is selected, enhancing user feedback (May 17, 2025, 11:49 AM BST).
 
 *Bug Fixes*:
 * Fixed persistent `${command:extension.commandvariable.selectedText}` placeholder replacement failure in `execute_task` by using regex to match the placeholder, resolving the issue with task argument substitution (May 17, 2025, 11:49 AM BST).
@@ -80,6 +92,51 @@
 * Integrated task execution from `tasks.json` with support for GCBASIC compiler tasks.
 * Implemented line number display, word wrap, and theme switching (light/dark).
 * Added recent files tracking and settings persistence in `~/.superide/ide_settings.json`.
+
+== Setting Up Icons and Icon Size
+
+The GCBASIC Essential IDE includes a customizable button bar for quick access to common tasks like compiling and flashing code. This section guides you through setting up the button icons and adjusting their size, especially to support visually impaired users who need larger, clearer buttons.
+
+*Configuring Button Bar Icons*:
+* The button bar is configured in `~/.superide/ide_settings.json` under the `button_bar` section. By default, it includes four buttons:
+  - `[F5]`: "Make HEX and Flash" with `hexflash.png`
+  - `[F6]`: "Make HEX" with `hex.png`
+  - `[F7]`: "Assemble" with `asm.png`
+  - `[F1]`: "Help" with `help.png`
+* To customize icons, edit `ide_settings.json` (e.g., `C:\Users\<your-username>\.superide\ide_settings.json`):
+  ```json
+  "button_bar": {
+      "button1": "[F5]:hexflash.png",
+      "button2": "[F6]:hex.png",
+      "button3": "[F7]:asm.png",
+      "button4": "[F1]:help.png",
+      "size": 24,
+      "position": []
+  }
+  ```
+* Place your icon files (e.g., `hexflash.png`, `hex.png`, `asm.png`, `help.png`) in the IDE’s code directory (e.g., `C:\DDrive\GreatCowBASICGits\GCBIDE\code\`).
+* Ensure icon names match the `buttonX` entries exactly and are PNG files. Use high-resolution images (e.g., 24x24 or larger) for clarity, especially if increasing the button size.
+* Each `buttonX` entry uses the format `[shortcut]:icon.png`, where `shortcut` (e.g., `F5`) links to a task in `~/.superide/tasks.json`.
+
+*Adjusting Icon Size for Accessibility*:
+* The button size is set by the `size` field in `button_bar` (default 24 pixels, creating 24x24 buttons with 20x20 icons).
+* For visually impaired users, increase `size` to make buttons larger and more visible. For example, set `"size": 48` for 48x48 buttons with 44x44 icons:
+  ```json
+  "size": 48
+  ```
+* Save `ide_settings.json` and restart the IDE to apply the new size. The button bar’s height will adjust to `size + 12` (e.g., 60 pixels for `size: 48`), and width will scale based on the number of buttons.
+* Use high-resolution PNGs (e.g., 48x48 or larger) to avoid pixelation when icons are scaled to `size - 4`. Clear, high-contrast icons are recommended for accessibility.
+* Test the button bar after changing `size` to ensure buttons are large enough and icons are legible. If needed, try larger sizes (e.g., 64) for optimal visibility.
+
+*Tips for Visually Impaired Users*:
+* Choose PNG icons with bold, distinct designs to enhance readability.
+* If the default 24x24 buttons are too small, experiment with `size` values (e.g., 48, 64) to find the best fit.
+* Ensure `tasks.json` includes tasks for `[F5]`, `[F6]`, `[F7]`, and `[F1]` to match the default buttons, preventing errors when clicking buttons.
+
+*Troubleshooting*:
+* If buttons show numbers (1–4) instead of icons, check that `hexflash.png`, `hex.png`, `asm.png`, and `help.png` are in the correct directory and match `ide_settings.json` entries.
+* If a button doesn’t trigger a task, verify the shortcut (e.g., `F5`) exists in `tasks.json`.
+* For size issues, confirm `size` in `ide_settings.json` is set appropriately and restart the IDE.
 
 == Notes
 
