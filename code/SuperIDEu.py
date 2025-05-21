@@ -1125,7 +1125,7 @@ class IDE(QMainWindow):
         report_issue_action.triggered.connect(lambda: self.open_url("https://github.com/GreatCowBASIC/GCBIDE/issues"))
         help_menu.addAction(report_issue_action)
         latest_release_action = QAction("&Latest Release", self)
-        latest_release_action.triggered.connect(lambda: self.open_url("https://github.com/GreatCowBASIC/GCBIDE/releases/tag/SuperIDE"))
+        latest_release_action.triggered.connect(lambda: self.open_url("https://github.com/GreatCowBASIC/GCBIDE/releases"))
         help_menu.addAction(latest_release_action)
                 
         help_menu.addSeparator()
