@@ -3,6 +3,8 @@
 == Version 1.7 (May 20, 2025)
 
 *Button Bar Improvements*:
+* Updated button bar icon handling to use `~/.superide/gcb-icons/{size}_{size}_icons` (e.g., `24_24_icons` for default `size: 24`). Icons are now referenced by filename only in `ide_settings.json` (e.g., `hexflash.png`). If `~/.superide/gcb-icons` is missing, icons are copied from the application folders `gcb-icons` directory (e.g., `{app_dir}/gcb-icons/24_24_icons`). Ensures robust icon management and persistence across installations. (May 20, 2025, 08:35 PM BST)
+
 * Set default button bar shortcuts and icons for new installations: `[F5]` for "Make HEX and Flash" (`hexflash.png`), `[F6]` for "Make HEX" (`hex.png`), `[F7]` for "Assemble" (`asm.png`), and `[F1]` for "Help" (`help.png`). Makes setup easier for new users with ready-to-use buttons. (May 20, 2025, 08:10 AM BST)
 * Reverted button size adjustment based on PNG image dimensions to use a fixed size from settings (`button_bar.size`, default 24 pixels). Ensures consistent button sizes; increase `size` in settings for larger buttons for visually impaired users. (May 20, 2025, 07:57 AM BST)
 * Fixed Alt+F4 to hide the button bar and close the IDE in one press, improving usability by ensuring a smooth exit from any focused window. Added focus shifting after button clicks or drags to keep the main IDE window active. (May 20, 2025, 07:39 AM BST)
@@ -114,7 +116,7 @@ The GCBASIC Essential IDE includes a customizable button bar for quick access to
       "position": []
   }
   ```
-* Place your icon files (e.g., `hexflash.png`, `hex.png`, `asm.png`, `help.png`) in the IDE’s code directory (e.g., `C:\DDrive\GreatCowBASICGits\GCBIDE\code\`).
+* Place your icon files (e.g., `hexflash.png`, `hex.png`, `asm.png`, `help.png`) in the IDEï¿½s code directory (e.g., `C:\DDrive\GreatCowBASICGits\GCBIDE\code\`).
 * Ensure icon names match the `buttonX` entries exactly and are PNG files. Use high-resolution images (e.g., 24x24 or larger) for clarity, especially if increasing the button size.
 * Each `buttonX` entry uses the format `[shortcut]:icon.png`, where `shortcut` (e.g., `F5`) links to a task in `~/.superide/tasks.json`.
 
@@ -124,7 +126,7 @@ The GCBASIC Essential IDE includes a customizable button bar for quick access to
   ```json
   "size": 48
   ```
-* Save `ide_settings.json` and restart the IDE to apply the new size. The button bar’s height will adjust to `size + 12` (e.g., 60 pixels for `size: 48`), and width will scale based on the number of buttons.
+* Save `ide_settings.json` and restart the IDE to apply the new size. The button barï¿½s height will adjust to `size + 12` (e.g., 60 pixels for `size: 48`), and width will scale based on the number of buttons.
 * Use high-resolution PNGs (e.g., 48x48 or larger) to avoid pixelation when icons are scaled to `size - 4`. Clear, high-contrast icons are recommended for accessibility.
 * Test the button bar after changing `size` to ensure buttons are large enough and icons are legible. If needed, try larger sizes (e.g., 64) for optimal visibility.
 
@@ -134,8 +136,8 @@ The GCBASIC Essential IDE includes a customizable button bar for quick access to
 * Ensure `tasks.json` includes tasks for `[F5]`, `[F6]`, `[F7]`, and `[F1]` to match the default buttons, preventing errors when clicking buttons.
 
 *Troubleshooting*:
-* If buttons show numbers (1–4) instead of icons, check that `hexflash.png`, `hex.png`, `asm.png`, and `help.png` are in the correct directory and match `ide_settings.json` entries.
-* If a button doesn’t trigger a task, verify the shortcut (e.g., `F5`) exists in `tasks.json`.
+* If buttons show numbers (1ï¿½4) instead of icons, check that `hexflash.png`, `hex.png`, `asm.png`, and `help.png` are in the correct directory and match `ide_settings.json` entries.
+* If a button doesnï¿½t trigger a task, verify the shortcut (e.g., `F5`) exists in `tasks.json`.
 * For size issues, confirm `size` in `ide_settings.json` is set appropriately and restart the IDE.
 
 == Notes
