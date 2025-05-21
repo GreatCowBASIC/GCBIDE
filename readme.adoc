@@ -1,91 +1,114 @@
 = GCBASIC Essential IDE Change Log
+:toc:
 
-== Version 1.7 (May 20, 2025)
+
+== Build 21.05.2025
+
+*Enhancements*:
+
+* Added "Report Issue" menu item under the Help menu to open `https://github.com/GreatCowBASIC/GCBIDE/issues` in the default web browser, enabling users to directly access the GitHub issues page for reporting bugs or feature requests. Implemented with a new `open_url` method in the `IDE` class for consistent URL handling and logging.
+* Added "Latest Release" menu item under the Help menu to open `https://github.com/GreatCowBASIC/GCBIDE/releases/tag/SuperIDE` in the default web browser, allowing users to check the latest IDE version. Utilizes the same `open_url` method for URL opening and terminal logging.
+
+== Build 20.05.2025
 
 *Button Bar Improvements*:
-* Updated button bar icon handling to use `~/.superide/gcb-icons/{size}_{size}_icons` (e.g., `24_24_icons` for default `size: 24`). Icons are now referenced by filename only in `ide_settings.json` (e.g., `hexflash.png`). If `~/.superide/gcb-icons` is missing, icons are copied from the application folders `gcb-icons` directory (e.g., `{app_dir}/gcb-icons/24_24_icons`). Ensures robust icon management and persistence across installations. (May 20, 2025, 08:35 PM BST)
 
-* Set default button bar shortcuts and icons for new installations: `[F5]` for "Make HEX and Flash" (`hexflash.png`), `[F6]` for "Make HEX" (`hex.png`), `[F7]` for "Assemble" (`asm.png`), and `[F1]` for "Help" (`help.png`). Makes setup easier for new users with ready-to-use buttons. (May 20, 2025, 08:10 AM BST)
-* Reverted button size adjustment based on PNG image dimensions to use a fixed size from settings (`button_bar.size`, default 24 pixels). Ensures consistent button sizes; increase `size` in settings for larger buttons for visually impaired users. (May 20, 2025, 07:57 AM BST)
-* Fixed Alt+F4 to hide the button bar and close the IDE in one press, improving usability by ensuring a smooth exit from any focused window. Added focus shifting after button clicks or drags to keep the main IDE window active. (May 20, 2025, 07:39 AM BST)
-* Fixed button clicks to reliably trigger tasks (e.g., `[F5]` for "Make HEX and Flash"), resolving issues where clicks were intercepted by drag-and-drop logic. (May 19, 2025, 09:25 AM BST)
-
-*Enhancements*:
-* Added debug logging for button bar actions (clicks, drags, Alt+F4) with `"BC: "` prefix, controlled by `SHOW_BAR_CONTROL` global variable, to help troubleshoot issues. (May 19, 2025, 09:32 AM BST)
-* Optimized button bar position saving to occur only on drag release, reducing unnecessary file writes for better performance. (May 19, 2025, 09:36 AM BST)
-
-== Version 1.6 (May 19, 2025)
+* Updated button bar icon handling to use `~/.superide/gcb-icons/{size}_{size}_icons` (e.g., `24_24_icons` for default `size: 24`). Icons are now referenced by filename only in `ide_settings.json` (e.g., `hexflash.png`). If `~/.superide/gcb-icons` is missing, icons are copied from the application folders `gcb-icons` directory (e.g., `{app_dir}/gcb-icons/24_24_icons`). Ensures robust icon management and persistence across installations.
+* Set default button bar shortcuts and icons for new installations: `[F5]` for "Make HEX and Flash" (`hexflash.png`), `[F6]` for "Make HEX" (`hex.png`), `[F7]` for "Assemble" (`asm.png`), and `[F1]` for "Help" (`help.png`). Makes setup easier for new users with ready-to-use buttons.
+* Reverted button size adjustment based on PNG image dimensions to use a fixed size from settings (`button_bar.size`, default 24 pixels). Ensures consistent button sizes; increase `size` in settings for larger buttons for visually impaired users.
+* Fixed Alt+F4 to hide the button bar and close the IDE in one press, improving usability by ensuring a smooth exit from any focused window. Added focus shifting after button clicks or drags to keep the main IDE window active.
+* Fixed button clicks to reliably trigger tasks (e.g., `[F5]` for "Make HEX and Flash"), resolving issues where clicks were intercepted by drag-and-drop logic.
 
 *Enhancements*:
-* Implemented recent files storage in `GCstudio.mrf.json`, located in the directory specified by `os.environ.get("GCBASIC_INSTALL_PATH")`, with the path stored in `ide_settings.json` under `recent_files_path`. Ensured the file is created if absent and padded to 10 entries for `RecentName` and `RecentDir` with empty strings, providing robust persistence and a consistent user experience for recent files tracking (May 19, 2025, 09:02 AM BST).
-* Removed redundant methods `TextBlockData.get_text`, `IDE.T1execute_task`, and `IDE.show_recent_files_in_settings` to streamline the codebase, reducing maintenance overhead, pending confirmation on `IDE.set_theme` usage (May 19, 2025, 09:02 AM BST).
+
+* Added debug logging for button bar actions (clicks, drags, Alt+F4) with `"BC: "` prefix, controlled by `SHOW_BAR_CONTROL` global variable, to help troubleshoot issues.
+* Optimized button bar position saving to occur only on drag release, reducing unnecessary file writes for better performance.
+
+== May 19, 2025
+
+*Enhancements*:
+
+* Implemented recent files storage in `GCstudio.mrf.json`, located in the directory specified by `os.environ.get("GCBASIC_INSTALL_PATH")`, with the path stored in `ide_settings.json` under `recent_files_path`. Ensured the file is created if absent and padded to 10 entries for `RecentName` and `RecentDir` with empty strings, providing robust persistence and a consistent user experience for recent files tracking.
+* Removed redundant methods `TextBlockData.get_text`, `IDE.T1execute_task`, and `IDE.show_recent_files_in_settings` to streamline the codebase, reducing maintenance overhead, pending confirmation on `IDE.set_theme` usage.
 
 *Bug Fixes*:
-* Fixed `NameError: name 'entry' is not defined` in `save_recent_files` by correcting the list comprehension to properly index `self.recent_files`, ensuring `RecentName` and `RecentDir` lists in `GCstudio.mrf.json` are always padded to 10 entries with empty strings, completing the reliable recent files persistence implementation (May 19, 2025, 09:02 AM BST).
 
-== Version 1.5 (May 18, 2025)
+* Fixed `NameError: name 'entry' is not defined` in `save_recent_files` by correcting the list comprehension to properly index `self.recent_files`, ensuring `RecentName` and `RecentDir` lists in `GCstudio.mrf.json` are always padded to 10 entries with empty strings, completing the reliable recent files persistence implementation.
 
-*Enhancements*:
-* Added support for remembering the last accessed folder in file operations, storing the directory in `self.settings['last_folder']` within `open_file_by_path`, `save_file`, and `save_file_as`. Updated `open_file` to use `last_folder` as the default `QFileDialog` directory, with fallback to the home directory if invalid, enhancing user experience by maintaining folder context across sessions (May 18, 2025, 10:21 AM BST).
-* Enhanced `load_settings` to initialize `last_folder` with the user's home directory if not set, ensuring persistence across sessions (May 18, 2025, 10:21 AM BST).
-* Improved line number area width in `CustomTextEdit` to dynamically adjust based on document line count, accommodating four-digit line numbers (1000+ lines) using `QFontMetrics` and a scalable formula, improving readability for large files (May 18, 2025, 10:21 AM BST).
-
-*Bug Fixes*:
-* Fixed line number truncation at 1000 lines by implementing dynamic width calculation in `CustomTextEdit.line_number_area_width`, ensuring sufficient space for four-digit line numbers and beyond (May 18, 2025, 10:21 AM BST).
-
-== Version 1.4 (May 17, 2025)
+== May 18, 2025
 
 *Enhancements*:
-* Added detailed logging in `execute_task` to debug `${command:extension.commandvariable.selectedText}` placeholder replacement, including raw string and hex representations of arguments (May 17, 2025, 11:49 AM BST).
-* Implemented regex-based placeholder replacement in `execute_task` using `re.sub` to handle potential string mismatches or hidden characters, improving robustness (May 17, 2025, 11:49 AM BST).
-* Added warning log in `execute_task` when the placeholder is present but no text is selected, enhancing user feedback (May 17, 2025, 11:49 AM BST).
+
+* Added support for remembering the last accessed folder in file operations, storing the directory in `self.settings['last_folder']` within `open_file_by_path`, `save_file`, and `save_file_as`. Updated `open_file` to use `last_folder` as the default `QFileDialog` directory, with fallback to the home directory if invalid, enhancing user experience by maintaining folder context across sessions.
+* Enhanced `load_settings` to initialize `last_folder` with the user's home directory if not set, ensuring persistence across sessions.
+* Improved line number area width in `CustomTextEdit` to dynamically adjust based on document line count, accommodating four-digit line numbers (1000+ lines) using `QFontMetrics` and a scalable formula, improving readability for large files.
 
 *Bug Fixes*:
-* Fixed persistent `${command:extension.commandvariable.selectedText}` placeholder replacement failure in `execute_task` by using regex to match the placeholder, resolving the issue with task argument substitution (May 17, 2025, 11:49 AM BST).
 
-== Version 1.3 (May 17, 2025)
+* Fixed line number truncation at 1000 lines by implementing dynamic width calculation in `CustomTextEdit.line_number_area_width`, ensuring sufficient space for four-digit line numbers and beyond.
+
+== May 17, 2025
 
 *Enhancements*:
-* Added `get_selected_text` method with Ctrl+E shortcut to retrieve selected text (May 17, 2025).
-* Improved `check_external_modifications` handling by syncing menu item state in `load_settings` and guarding `check_file_changes` calls (May 17, 2025).
-* Enhanced `execute_task` to support `${command:extension.commandvariable.selectedText}` placeholder replacement with initial list comprehension approach (May 17, 2025).
+
+* Added detailed logging in `execute_task` to debug `${command:extension.commandvariable.selectedText}` placeholder replacement, including raw string and hex representations of arguments.
+* Implemented regex-based placeholder replacement in `execute_task` using `re.sub` to handle potential string mismatches or hidden characters, improving robustness.
+* Added warning log in `execute_task` when the placeholder is present but no text is selected, enhancing user feedback.
 
 *Bug Fixes*:
-* Fixed external modification setting sync issue for menu item state (May 17, 2025).
-* Resolved `[INFO] def check_file_changes` log when `check_external_modifications` was `False` by moving log and guarding calls, addressing the check_file_changes invocation issue (May 17, 2025).
-* Addressed initial placeholder replacement failure in `execute_task` by correcting list-based replacement, though issues persisted (May 17, 2025).
 
-== Version 1.2 (May 16-17, 2025)
+* Fixed persistent `${command:extension.commandvariable.selectedText}` placeholder replacement failure in `execute_task` by using regex to match the placeholder, resolving the issue with task argument substitution.
+
+== May 17, 2025
 
 *Enhancements*:
-* Added single-instance checking with a socket lock to prevent multiple IDE instances, reducing external modification conflicts (May 16, 2025).
-* Improved external file change detection with refined `mtime` tracking and user choice persistence in `check_file_changes` (May 16, 2025).
-* Enhanced `execute_task` to launch non-"make" tasks non-modally with `subprocess.Popen` (May 17, 2025).
+
+* Added `get_selected_text` method with Ctrl+E shortcut to retrieve selected text.
+* Improved `check_external_modifications` handling by syncing menu item state in `load_settings` and guarding `check_file_changes` calls.
+* Enhanced `execute_task` to support `${command:extension.commandvariable.selectedText}` placeholder replacement with initial list comprehension approach.
 
 *Bug Fixes*:
-* Fixed unnecessary save prompts for unmodified files by preserving document modified state during highlighting (May 16, 2025).
-* Resolved `[ERROR] Error executing task: 'IDE' object has no attribute 'user_scrolled'` by using `self.terminal.user_scrolled` (May 17, 2025).
-* Fixed log display issue for "make" tasks by ensuring all lines of `%temp%\gcbasic.log` are shown (May 17, 2025).
-* Corrected reload prompt after save by clearing file cache and updating `mtime` in `save_file` and `save_file_as`, resolving the reload prompt after save issue (May 16, 2025).
-* Fixed double tab closure by disconnecting/reconnecting `tabCloseRequested` signal in `update_background_after_close`, resolving the double tab closure issue (May 16, 2025).
 
-== Version 1.1 (May 15-16, 2025)
+* Fixed external modification setting sync issue for menu item state.
+* Resolved `[INFO] def check_file_changes` log when `check_external_modifications` was `False` by moving log and guarding calls, addressing the check_file_changes invocation issue.
+* Addressed initial placeholder replacement failure in `execute_task` by correcting list-based replacement, though issues persisted.
+
+== May 16-17, 2025
 
 *Enhancements*:
-* Improved syntax highlighting by making `GCB.tmLanguage.json` patterns case-insensitive (May 15, 2025).
-* Added F4 shortcut to open the IDE Tasks menu programmatically, resolving the F4 shortcut issue (May 16, 2025).
-* Enhanced `parse_tasks_json` to strip comments line-by-line, resolving Tasks to Menu option issue (May 16, 2025).
+
+* Added single-instance checking with a socket lock to prevent multiple IDE instances, reducing external modification conflicts.
+* Improved external file change detection with refined `mtime` tracking and user choice persistence in `check_file_changes`.
+* Enhanced `execute_task` to launch non-"make" tasks non-modally with `subprocess.Popen`.
 
 *Bug Fixes*:
-* Fixed `QTextCursor::setPosition: Position '174' out of range` error in `SyntaxHighlighter`, resolving a syntax error issue (May 15, 2025).
-* Corrected comment highlighting for `REM` and `' REM` by reordering patterns in `GCB.tmLanguage.json` (May 15, 2025).
-* Resolved broken Undo/Ctrl+Z by grouping formatting operations in `SyntaxHighlighter` (May 15, 2025).
-* Fixed console warning about invisible window in IDE Tasks menu by using `QMenu.popup` (May 16, 2025).
-* Corrected `[WinError 267]` for "Make HEX [F6]" task by converting VS Code syntax to Windows-compatible paths in `execute_task`, addressing duplicate `execute_task` issues (May 16, 2025).
 
-== Version 1.0 (Initial Release, Pre-May 2025)
+* Fixed unnecessary save prompts for unmodified files by preserving document modified state during highlighting.
+* Resolved `[ERROR] Error executing task: 'IDE' object has no attribute 'user_scrolled'` by using `self.terminal.user_scrolled`.
+* Fixed log display issue for "make" tasks by ensuring all lines of `%temp%\gcbasic.log` are shown.
+* Corrected reload prompt after save by clearing file cache and updating `mtime` in `save_file` and `save_file_as`, resolving the reload prompt after save issue.
+* Fixed double tab closure by disconnecting/reconnecting `tabCloseRequested` signal in `update_background_after_close`, resolving the double tab closure issue.
+
+== May 15-16, 2025
+
+*Enhancements*:
+
+* Improved syntax highlighting by making `GCB.tmLanguage.json` patterns case-insensitive.
+* Added F4 shortcut to open the IDE Tasks menu programmatically, resolving the F4 shortcut issue.
+* Enhanced `parse_tasks_json` to strip comments line-by-line, resolving Tasks to Menu option issue.
+
+*Bug Fixes*:
+
+* Fixed `QTextCursor::setPosition: Position '174' out of range` error in `SyntaxHighlighter`, resolving a syntax error issue.
+* Corrected comment highlighting for `REM` and `' REM` by reordering patterns in `GCB.tmLanguage.json`.
+* Resolved broken Undo/Ctrl+Z by grouping formatting operations in `SyntaxHighlighter`.
+* Fixed console warning about invisible window in IDE Tasks menu by using `QMenu.popup`.
+* Corrected `[WinError 267]` for "Make HEX [F6]" task by converting VS Code syntax to Windows-compatible paths in `execute_task`, addressing duplicate `execute_task` issues.
+
+== Initial Release, Pre-May 2025
 
 *Initial Features*:
+
 * Implemented core IDE functionality with `QTabWidget` for multi-tab editing of `.GCB` files.
 * Added syntax highlighting via `SyntaxHighlighter` class using `GCB.tmLanguage.json` for GCBASIC code.
 * Supported basic file operations: New, Open, Save, Save As, Close, and Print.
@@ -100,12 +123,15 @@
 The GCBASIC Essential IDE includes a customizable button bar for quick access to common tasks like compiling and flashing code. This section guides you through setting up the button icons and adjusting their size, especially to support visually impaired users who need larger, clearer buttons.
 
 *Configuring Button Bar Icons*:
+
 * The button bar is configured in `~/.superide/ide_settings.json` under the `button_bar` section. By default, it includes four buttons:
+
   - `[F5]`: "Make HEX and Flash" with `hexflash.png`
   - `[F6]`: "Make HEX" with `hex.png`
   - `[F7]`: "Assemble" with `asm.png`
   - `[F1]`: "Help" with `help.png`
 * To customize icons, edit `ide_settings.json` (e.g., `C:\Users\<your-username>\.superide\ide_settings.json`):
+
   ```json
   "button_bar": {
       "button1": "[F5]:hexflash.png",
@@ -116,33 +142,37 @@ The GCBASIC Essential IDE includes a customizable button bar for quick access to
       "position": []
   }
   ```
-* Place your icon files (e.g., `hexflash.png`, `hex.png`, `asm.png`, `help.png`) in the IDE�s code directory (e.g., `C:\DDrive\GreatCowBASICGits\GCBIDE\code\`).
+* Place your icon files (e.g., `hexflash.png`, `hex.png`, `asm.png`, `help.png`) in the IDE’s code directory (e.g., `C:\DDrive\GreatCowBASICGits\GCBIDE\code\`).
 * Ensure icon names match the `buttonX` entries exactly and are PNG files. Use high-resolution images (e.g., 24x24 or larger) for clarity, especially if increasing the button size.
 * Each `buttonX` entry uses the format `[shortcut]:icon.png`, where `shortcut` (e.g., `F5`) links to a task in `~/.superide/tasks.json`.
 
 *Adjusting Icon Size for Accessibility*:
+
 * The button size is set by the `size` field in `button_bar` (default 24 pixels, creating 24x24 buttons with 20x20 icons).
 * For visually impaired users, increase `size` to make buttons larger and more visible. For example, set `"size": 48` for 48x48 buttons with 44x44 icons:
+
   ```json
   "size": 48
   ```
-* Save `ide_settings.json` and restart the IDE to apply the new size. The button bar�s height will adjust to `size + 12` (e.g., 60 pixels for `size: 48`), and width will scale based on the number of buttons.
+* Save `ide_settings.json` and restart the IDE to apply the new size. The button bar’s height will adjust to `size + 12` (e.g., 60 pixels for `size: 48`), and width will scale based on the number of buttons.
 * Use high-resolution PNGs (e.g., 48x48 or larger) to avoid pixelation when icons are scaled to `size - 4`. Clear, high-contrast icons are recommended for accessibility.
 * Test the button bar after changing `size` to ensure buttons are large enough and icons are legible. If needed, try larger sizes (e.g., 64) for optimal visibility.
 
 *Tips for Visually Impaired Users*:
+
 * Choose PNG icons with bold, distinct designs to enhance readability.
 * If the default 24x24 buttons are too small, experiment with `size` values (e.g., 48, 64) to find the best fit.
 * Ensure `tasks.json` includes tasks for `[F5]`, `[F6]`, `[F7]`, and `[F1]` to match the default buttons, preventing errors when clicking buttons.
 
 *Troubleshooting*:
-* If buttons show numbers (1�4) instead of icons, check that `hexflash.png`, `hex.png`, `asm.png`, and `help.png` are in the correct directory and match `ide_settings.json` entries.
-* If a button doesn�t trigger a task, verify the shortcut (e.g., `F5`) exists in `tasks.json`.
+
+* If buttons show numbers (1–4) instead of icons, check that `hexflash.png`, `hex.png`, `asm.png`, and `help.png` are in the correct directory and match `ide_settings.json` entries.
+* If a button doesn’t trigger a task, verify the shortcut (e.g., `F5`) exists in `tasks.json`.
 * For size issues, confirm `size` in `ide_settings.json` is set appropriately and restart the IDE.
 
 == Notes
 
 * All versions maintain compatibility with GCBASIC compiler tasks and `.GCB` file editing.
 * The IDE uses `tasks.json` for task configurations, with ongoing improvements in placeholder handling, particularly for `${command:extension.commandvariable.selectedText}`.
-* The clarification of `if not` syntax in Python was provided to support development but did not result in code changes (May 17, 2025).
+* The clarification of `if not` syntax in Python was provided to support development but did not result in code changes.
 * Future updates may focus on further placeholder support, performance optimizations, enhanced logging for task outputs, confirming the intended use of `IDE.set_theme`, and addressing `libpng` warnings for `GCstudio.png`.
