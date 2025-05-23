@@ -73,7 +73,7 @@ def is_eligible_drive(drive):
         return False
 
 def find_superide():
-    """Search eligible drives for superide.bat (case-insensitive) and execute it if found."""
+    """Search eligible drives with \\gcstudio folder for superide.bat (case-insensitive) in the root directory."""
     # Get all possible drive letters
     drives = [f"{d}:\\" for d in string.ascii_uppercase if os.path.exists(f"{d}:\\")]
     logging.debug(f"Found drives: {drives}")
@@ -82,16 +82,23 @@ def find_superide():
     eligible_drives = [drive for drive in drives if is_eligible_drive(drive)]
     logging.debug(f"Eligible drives: {eligible_drives}")
     
-    # Search each eligible drive for superide.bat
+    # Search each eligible drive for \gcstudio and superide.bat in root
     for drive in eligible_drives:
         logging.debug(f"Searching drive {drive}")
         try:
-            for root, _, files in os.walk(drive):
-                logging.debug(f"Checking directory: {root}")
+            # Construct path to \gcstudio
+            gcstudio_path = os.path.join(drive, 'gcstudio')
+            logging.debug(f"Checking for directory: {gcstudio_path}")
+            
+            # Check if \gcstudio exists and is a directory
+            if os.path.isdir(gcstudio_path):
+                logging.debug(f"Found \\gcstudio on drive {drive}")
+                # List files in the root directory
+                files = os.listdir(drive)
                 # Case-insensitive check for superide.bat
                 for file in files:
                     if file.lower() == 'superide.bat':
-                        batch_file = os.path.join(root, file)
+                        batch_file = os.path.join(drive, file)
                         logging.info(f"Found {file} at {batch_file}")
                         try:
                             # Execute the batch file
@@ -105,10 +112,12 @@ def find_superide():
                             messagebox.showerror("Error", f"Failed to execute {file} at {batch_file}")
                             root.destroy()
                             return True
+            else:
+                logging.debug(f"Directory {gcstudio_path} does not exist or is not a directory")
         except Exception as e:
             logging.error(f"Error accessing drive {drive}: {e}")
             continue
-    logging.info("superide.bat not found on any eligible drive")
+    logging.info("superide.bat not found on any eligible drive with \\gcstudio")
     return False
 
 def show_not_found_popup():

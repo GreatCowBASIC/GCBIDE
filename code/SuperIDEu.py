@@ -24,7 +24,7 @@ from collections import deque
 import uuid
 
 #build number
-BUILD_NUMBER = "05.21.2025"
+BUILD_NUMBER = "05.23.2025"
 
 # Global flag for HL: INFO messages (not user-settable)
 SHOW_HL_INFO = False  # Disabled to reduce clutter
@@ -748,11 +748,12 @@ class FloatingButtonBar(QWidget):
                     if SHOW_BAR_CONTROL:
                         self.ide.terminal.log(f"BC: Raw new_pos: {new_pos}", "INFO")
                     parent_rect = self.ide.geometry()
+                    screen = QApplication.primaryScreen().availableGeometry()
                     button_size = self.settings["button_bar"].get("size", 24)
                     x = max(parent_rect.left(), min(new_pos.x(), parent_rect.right() - self.width()))
-                    y = max(parent_rect.top(), min(new_pos.y(), parent_rect.bottom() - button_size))
+                    y = max(screen.top(), min(new_pos.y(), screen.bottom() - button_size))
                     if SHOW_BAR_CONTROL:
-                        self.ide.terminal.log(f"BC: Constrained pos: [{x}, {y}], parent_rect: {parent_rect}", "INFO")
+                        self.ide.terminal.log(f"BC: Constrained pos: [{x}, {y}], parent_rect: {parent_rect}, screen: {screen}", "INFO")
                     self.move(x, y)
                     self.settings["button_bar"]["position"] = [self.x(), self.y()]
                     if SHOW_BAR_CONTROL:
@@ -1035,6 +1036,14 @@ class IDE(QMainWindow):
         case_action = QAction("Toggle &Case", self)
         case_action.triggered.connect(self.toggle_case)
         edit_menu.addAction(case_action)
+        upper_case_action = QAction("&UpperCase", self)
+        upper_case_action.setShortcut("Ctrl+U")
+        upper_case_action.triggered.connect(self.upper_case)
+        edit_menu.addAction(upper_case_action)
+        lower_case_action = QAction("&LowerCase", self)
+        lower_case_action.setShortcut("Ctrl+L")
+        lower_case_action.triggered.connect(self.lower_case)
+        edit_menu.addAction(lower_case_action)
         goto_action = QAction("&Go to Line", self)
         goto_action.setShortcut("Ctrl+G")
         goto_action.triggered.connect(self.goto_line)
@@ -1043,6 +1052,13 @@ class IDE(QMainWindow):
         comment_action.setShortcut("Ctrl+/")
         comment_action.triggered.connect(self.toggle_comment)
         edit_menu.addAction(comment_action)
+
+        # Add repaint highlighting shortcut without menu item
+        repaint_highlight_action = QAction("Repaint Highlighting", self)
+        repaint_highlight_action.setShortcut("Ctrl+Shift+R")
+        repaint_highlight_action.triggered.connect(self.repaint_highlighting)
+        self.addAction(repaint_highlight_action)
+
         appearance_menu = settings_menu.addMenu("&Appearance")
         editor_menu = settings_menu.addMenu("&Editor")
         logging_menu = settings_menu.addMenu("&Logging")
@@ -1140,6 +1156,14 @@ class IDE(QMainWindow):
         self.tabs.installEventFilter(self)
         self.tabs.currentChanged.connect(self.on_tab_changed)
 
+    def repaint_highlighting(self):
+        current_tab = self.tabs.currentWidget()
+        if current_tab:
+            current_tab.highlighter._apply_highlighting()
+            self.terminal.log("Syntax highlighting repainted", "INFO")
+        else:
+            self.terminal.log("No file open to repaint highlighting", "ERROR")
+
     def open_url(self, url):
         qurl = QUrl(url)
         if qurl.isValid():
@@ -1179,20 +1203,19 @@ class IDE(QMainWindow):
             if not position or len(position) != 2:
                 pos_x, pos_y = default_x, default_y
                 if SHOW_BAR_CONTROL:
-                    self.terminal.log(f"Using default position: [{pos_x}, {pos_y}] (50% width, menu bar height)", "INFO")
+                    self.terminal.log(f"Using default position: [{pos_x}, {pos_y}]", "INFO")
             else:
                 pos_x, pos_y = position
                 if SHOW_BAR_CONTROL:
                     self.terminal.log(f"Using saved position: [{pos_x}, {pos_y}]", "INFO")
-            pos_x = max(0, min(pos_x, window_width - bar_width))
-            pos_y = max(menu_bar_height, min(pos_y, self.height() - button_size))
+            parent_rect = self.geometry()
+            screen = QApplication.primaryScreen().availableGeometry()
+            pos_x = max(parent_rect.left(), min(pos_x, parent_rect.right() - bar_width))
+            pos_y = max(screen.top(), min(pos_y, screen.bottom() - button_size))
             self.button_bar.move(pos_x, pos_y)
-            self.settings["button_bar"]["position"] = [pos_x, pos_y]
-            self.save_settings()
+            self.button_bar.settings["button_bar"]["position"] = [pos_x, pos_y]
             if SHOW_BAR_CONTROL:
-                self.terminal.log(f"Button bar initialized at position: [{pos_x}, {pos_y}]", "INFO")
-        else:
-            self.terminal.log("Button bar created but hidden due to no valid buttons", "ERROR")
+                self.terminal.log(f"Button bar positioned at: [{pos_x}, {pos_y}]", "INFO")
 
     def reset_button_bar_position(self):
         """Reset the button bar to the middle of the window near the top."""
@@ -1885,7 +1908,8 @@ class IDE(QMainWindow):
         current_tab = self.tabs.currentWidget()
         if current_tab:
             doc = current_tab.document()
-            self.terminal.log(f"Undo requested - isUndoAvailable: {doc.isUndoAvailable()}, modified: {doc.isModified()}", "INFO")
+            if SHOW_HL_INFO:
+                self.terminal.log(f"Undo requested - isUndoAvailable: {doc.isUndoAvailable()}, modified: {doc.isModified()}", "INFO")
             if doc.isUndoAvailable():
                 current_tab.undo()
                 current_tab.highlighter.schedule_highlighting()
@@ -1897,7 +1921,8 @@ class IDE(QMainWindow):
         current_tab = self.tabs.currentWidget()
         if current_tab:
             doc = current_tab.document()
-            self.terminal.log(f"Redo requested - isRedoAvailable: {doc.isRedoAvailable()}, modified: {doc.isModified()}", "INFO")
+            if SHOW_HL_INFO:
+                self.terminal.log(f"Redo requested - isRedoAvailable: {doc.isRedoAvailable()}, modified: {doc.isModified()}", "INFO")
             if doc.isRedoAvailable():
                 current_tab.redo()
                 current_tab.highlighter.schedule_highlighting()
@@ -1984,11 +2009,41 @@ class IDE(QMainWindow):
         if current_tab:
             cursor = current_tab.textCursor()
             if cursor.hasSelection():
+                start_pos = cursor.selectionStart()
                 text = cursor.selectedText()
-                if text.isupper():
-                    cursor.insertText(text.lower())
-                else:
-                    cursor.insertText(text.upper())
+                new_text = text.lower() if text.isupper() else text.upper()
+                cursor.insertText(new_text)
+                cursor.setPosition(start_pos)
+                cursor.setPosition(start_pos + len(new_text), QTextCursor.KeepAnchor)
+                current_tab.setTextCursor(cursor)
+                current_tab.highlighter.schedule_highlighting()
+
+    def upper_case(self):
+        current_tab = self.tabs.currentWidget()
+        if current_tab:
+            cursor = current_tab.textCursor()
+            if cursor.hasSelection():
+                start_pos = cursor.selectionStart()
+                text = cursor.selectedText()
+                new_text = text.upper()
+                cursor.insertText(new_text)
+                cursor.setPosition(start_pos)
+                cursor.setPosition(start_pos + len(new_text), QTextCursor.KeepAnchor)
+                current_tab.setTextCursor(cursor)
+                current_tab.highlighter.schedule_highlighting()
+
+    def lower_case(self):
+        current_tab = self.tabs.currentWidget()
+        if current_tab:
+            cursor = current_tab.textCursor()
+            if cursor.hasSelection():
+                start_pos = cursor.selectionStart()
+                text = cursor.selectedText()
+                new_text = text.lower()
+                cursor.insertText(new_text)
+                cursor.setPosition(start_pos)
+                cursor.setPosition(start_pos + len(new_text), QTextCursor.KeepAnchor)
+                current_tab.setTextCursor(cursor)
                 current_tab.highlighter.schedule_highlighting()
 
     def goto_line(self):
