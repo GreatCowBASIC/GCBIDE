@@ -15,16 +15,16 @@ import shutil
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
                              QMenuBar, QAction, QFileDialog, QDockWidget, QListWidget, QMessageBox,
                              QInputDialog, QMenu, QFrame, QDialog, QDialogButtonBox, QTextBrowser, QComboBox,
-                             QPushButton, QHBoxLayout, QLabel)
+                             QPushButton, QHBoxLayout, QLabel, QFontDialog)
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from PyQt5.QtGui import QTextOption, QTextDocument, QFont, QPainter, QFontMetrics, QTextCursor, QIcon, QTextCharFormat, QColor, QImage
 from PyQt5.QtCore import Qt, QUrl, QPoint, QTimer, QRect, QByteArray, QSize, QEvent
-from PyQt5.QtGui import QDesktopServices, QTextBlockUserData
+from PyQt5.QtGui import QDesktopServices, QTextBlockUserData, QFontDatabase
 from collections import deque
 import uuid
 
 #build number
-BUILD_NUMBER = "05.23.2025"
+BUILD_NUMBER = "05.24.2025"
 
 # Global flag for HL: INFO messages (not user-settable)
 SHOW_HL_INFO = False  # Disabled to reduce clutter
@@ -74,7 +74,7 @@ class LineNumberArea(QFrame):
         cursor = self.editor.cursorForPosition(self.editor.viewport().pos())
         first_visible_block = doc.findBlock(cursor.position())
         block_number = first_visible_block.blockNumber()
-        font = QFont("Consolas", self.editor.ide.settings["editor_font_size"])
+        font = QFont(self.editor.ide.settings["editor_font"], self.editor.ide.settings["editor_font_size"])
         painter.setFont(font)
         fm = QFontMetrics(font)
         ascent = fm.ascent()
@@ -1067,6 +1067,12 @@ class IDE(QMainWindow):
         ui_font_action = QAction("&UI Font Size", self)
         ui_font_action.triggered.connect(self.set_ui_font_size)
         appearance_menu.addAction(ui_font_action)
+    
+        # New font chooser action
+        editor_font_action = QAction("&Editor Font", self)
+        editor_font_action.triggered.connect(self.set_editor_font)
+        appearance_menu.addAction(editor_font_action)
+
         editor_font_action = QAction("&Editor Font Size", self)
         editor_font_action.triggered.connect(self.set_editor_font_size)
         appearance_menu.addAction(editor_font_action)
@@ -1156,6 +1162,50 @@ class IDE(QMainWindow):
         self.tabs.installEventFilter(self)
         self.tabs.currentChanged.connect(self.on_tab_changed)
 
+    # New Function
+    def set_editor_font(self):
+        class FontDialog(QDialog):
+            def __init__(self, parent=None, current_font="Consolas"):
+                super().__init__(parent)
+                self.setWindowTitle("Select Editor Font")
+                layout = QVBoxLayout()
+                self.font_combo = QComboBox()
+                font_db = QFontDatabase()
+                # Filter for monospaced fonts
+                monospaced_fonts = []
+                for family in font_db.families():
+                    if font_db.isScalable(family) and font_db.isFixedPitch(family):
+                        monospaced_fonts.append(family)
+                monospaced_fonts.sort()
+                self.font_combo.addItems(monospaced_fonts)
+                # Set current font
+                current_index = self.font_combo.findText(current_font)
+                if current_index != -1:
+                    self.font_combo.setCurrentIndex(current_index)
+                layout.addWidget(self.font_combo)
+                button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+                button_box.accepted.connect(self.accept)
+                button_box.rejected.connect(self.reject)
+                layout.addWidget(button_box)
+                self.setLayout(layout)
+
+            def selected_font(self):
+                return self.font_combo.currentText()
+
+        dialog = FontDialog(self, self.settings.get("editor_font", "Consolas"))
+        if dialog.exec_() == QDialog.Accepted:
+            selected_font = dialog.selected_font()
+            font_db = QFontDatabase()
+            # Validate selected font is monospaced and available
+            if font_db.isFixedPitch(selected_font) and selected_font in font_db.families():
+                if selected_font != self.settings.get("editor_font", "Consolas"):
+                    self.settings["editor_font"] = selected_font
+                    self.apply_text_settings()
+                    self.save_settings()
+                    # self.terminal.log(f"Set editor font to {selected_font}", "INFO")
+            else:
+                self.terminal.log(f"Selected font {selected_font} is not a valid monospaced font, ignoring", "ERROR")
+                            
     def repaint_highlighting(self):
         current_tab = self.tabs.currentWidget()
         if current_tab:
@@ -1608,8 +1658,15 @@ class IDE(QMainWindow):
         self.terminal.log(f"Applied logging settings: \nshow Info \t{self.settings['show_info']} \nshow Errors: \t{self.settings['show_errors']} \nshow Terminal: \t{self.settings['showTerminal']}", "INFO")
 
     def apply_text_settings(self, text_edit=None):
+        font_db = QFontDatabase()
+        editor_font_name = self.settings.get("editor_font", "Consolas")
+        # Validate font availability
+        if not font_db.isFixedPitch(editor_font_name) or editor_font_name not in font_db.families():
+            self.terminal.log(f"Font {editor_font_name} is not a valid monospaced font, falling back to Consolas", "WARNING")
+            editor_font_name = "Consolas"
+            self.settings["editor_font"] = "Consolas"
         ui_font = QFont("Arial", self.settings["ui_font_size"])
-        editor_font = QFont("Consolas", self.settings["editor_font_size"])
+        editor_font = QFont(editor_font_name, self.settings["editor_font_size"])
         fg_color = "#FFFFFF" if self.settings["theme"] == "dark" else "#000000"
         QApplication.instance().setFont(ui_font)
         self.menuBar().setFont(ui_font)
@@ -1637,11 +1694,15 @@ class IDE(QMainWindow):
                 text_edit.setWordWrapMode(QTextOption.NoWrap)
             text_edit.update_line_number_area_width()
             text_edit.line_number_area.setVisible(self.settings["line_numbers"])
-            text_edit.line_number_area.update()
+            # Force Line Numbering refresh
+            text_edit.line_number_area.hide()
+            text_edit.line_number_area.show()
+            text_edit.line_number_area.repaint()
             text_edit.viewport().update()
             text_edit.setStyleSheet(f"background: transparent; color: {fg_color};")
             if SHOW_FILE_INFO:
-                self.terminal.log(f"Applied editor settings to text edit - font_size: {self.settings['editor_font_size']}, line_numbers: {self.settings['line_numbers']}", "INFO")
+                self.terminal.log(f"Applied editor settings to text edit - font: {self.settings['editor_font']}, font_size: {self.settings['editor_font_size']}, line_numbers: {self.settings['line_numbers']}", "INFO")
+                self.terminal.log(f"Line Numbering set to font: {self.settings['editor_font']}", "INFO")
 
     def save_recent_files(self):
         try:
@@ -2243,7 +2304,7 @@ class IDE(QMainWindow):
         if ok:
             self.settings["editor_font_size"] = size
             self.apply_text_settings()
-            self.terminal.log(f"Set editor_font_size to {size}", "INFO")
+            # self.terminal.log(f"Set editor_font_size to {size}", "INFO")
             self.save_settings()
 
     def toggle_word_wrap(self):
@@ -2368,23 +2429,28 @@ class IDE(QMainWindow):
         return os.path.join(config_dir, "ide_settings.json")
 
     def save_settings(self):
+        # self.terminal.log("Calling save_settings", "INFO")
         self.settings["window_size"] = [self.width(), self.height()]
         self.settings["window_position"] = [self.pos().x(), self.pos().y()]
         try:
             dock_state = self.saveState().toBase64().data().decode('latin1')
             self.settings["dock_state"] = dock_state
-            # self.terminal.log("Saved dock state successfully", "INFO")
         except Exception as e:
             self.terminal.log(f"Error saving dock state: {str(e)}", "ERROR")
         settings_path = self.get_settings_path()
+        # Ensure editor_font is defined
+        if "editor_font" not in self.settings or not isinstance(self.settings["editor_font"], str):
+            self.settings["editor_font"] = "Consolas"
+            # self.terminal.log("Ensured editor_font is set to Consolas before saving", "INFO")
         try:
             with open(settings_path, "w", encoding="utf-8") as f:
                 json.dump(self.settings, f, indent=4)
             os.chmod(settings_path, 0o600)
             if SHOW_FILE_INFO:
-                self.terminal.log(f"Saved settings to {settings_path}", "INFO")
+                self.terminal.log(f"Saved settings to {settings_path} with editor_font: {self.settings['editor_font']}", "INFO")
         except Exception as e:
             self.terminal.log(f"Error saving settings to {settings_path}: {str(e)}", "ERROR")
+
 
     def load_settings(self):
         settings_path = self.get_settings_path()
@@ -2401,9 +2467,27 @@ class IDE(QMainWindow):
                 loaded_settings = json.load(f)
                 if SHOW_BAR_CONTROL:
                     self.terminal.log(f"Loaded settings from {settings_path}: {loaded_settings}", "INFO")
-                for key in self.settings.keys():
-                    if key in loaded_settings:
+                # Load all keys with error handling
+                for key in loaded_settings:
+                    try:
                         self.settings[key] = loaded_settings[key]
+                        # self.terminal.log(f"Loaded {key}: {self.settings[key]}", "INFO")
+                    except Exception as e:
+                        self.terminal.log(f"Error loading key {key}: {str(e)}", "ERROR")
+                # Simplified editor_font validation
+                font_db = QFontDatabase()
+                if "editor_font" not in self.settings or not isinstance(self.settings["editor_font"], str):
+                    self.settings["editor_font"] = "Consolas"
+                    self.terminal.log("Set default editor_font to Consolas due to missing or invalid font", "INFO")
+                else:
+                    # Case-insensitive check for font availability
+                    font_families = [f.lower() for f in font_db.families()]
+                    if self.settings["editor_font"].lower() not in font_families:
+                        self.terminal.log(f"Font {self.settings['editor_font']} not found in font database: {font_db.families()[:10]}...", "WARNING")
+                        self.settings["editor_font"] = "Consolas"
+                    else:
+                        pass
+                        # self.terminal.log(f"Loaded editor_font: {self.settings['editor_font']}", "INFO")
                 if "editor_font_size" not in self.settings or not isinstance(self.settings["editor_font_size"], int):
                     self.settings["editor_font_size"] = 12
                     self.terminal.log("Set default editor_font_size to 12", "INFO")
@@ -2469,6 +2553,7 @@ class IDE(QMainWindow):
             self.save_recent_files()
             self.settings["last_folder"] = os.path.expanduser("~")
             self.set_default_geometry()
+            self.settings["editor_font"] = "Consolas"
             self.settings["editor_font_size"] = 12
             self.settings["button_bar"] = default_button_bar
             self.addDockWidget(Qt.BottomDockWidgetArea, self.dock)
@@ -2476,7 +2561,7 @@ class IDE(QMainWindow):
             self.apply_text_settings()
             self.apply_theme()
             self.apply_terminal_settings()
-            self.first_time_settings = True  # Set flag for first-time settings creation
+            self.first_time_settings = True
             self.terminal.log("First-time settings created, flag set to open demo files", "INFO")
         except json.JSONDecodeError as e:
             self.terminal.log(f"Invalid settings file, using defaults: {str(e)}", "ERROR")
@@ -2484,6 +2569,7 @@ class IDE(QMainWindow):
             self.save_recent_files()
             self.settings["last_folder"] = os.path.expanduser("~")
             self.set_default_geometry()
+            self.settings["editor_font"] = "Consolas"
             self.settings["editor_font_size"] = 12
             self.settings["button_bar"] = default_button_bar
             self.addDockWidget(Qt.BottomDockWidgetArea, self.dock)
@@ -2491,7 +2577,7 @@ class IDE(QMainWindow):
             self.apply_text_settings()
             self.apply_theme()
             self.apply_terminal_settings()
-            self.first_time_settings = True  # Set flag for invalid settings file
+            self.first_time_settings = True
             self.terminal.log("Invalid settings file detected, flag set to open demo files", "INFO")
         except Exception as e:
             self.terminal.log(f"Error loading settings: {str(e)}", "ERROR")
@@ -2499,6 +2585,7 @@ class IDE(QMainWindow):
             self.save_recent_files()
             self.settings["last_folder"] = os.path.expanduser("~")
             self.set_default_geometry()
+            self.settings["editor_font"] = "Consolas"
             self.settings["editor_font_size"] = 12
             self.settings["button_bar"] = default_button_bar
             self.addDockWidget(Qt.BottomDockWidgetArea, self.dock)
@@ -2506,8 +2593,9 @@ class IDE(QMainWindow):
             self.apply_text_settings()
             self.apply_theme()
             self.apply_terminal_settings()
-            self.first_time_settings = True  # Set flag for general error
+            self.first_time_settings = True
             self.terminal.log("Error loading settings, flag set to open demo files", "INFO")
+
 
     def set_default_geometry(self):
         self.settings["window_size"] = [800, 600]

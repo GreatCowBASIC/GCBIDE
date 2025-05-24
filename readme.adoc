@@ -1,6 +1,12 @@
 = GCBASIC Essential IDE Change Log
 :toc:
 
+== Build 24.05.2025
+
+Enhancements:
+
+
+Added a font chooser to the Settings/Appearance menu, implemented in the IDE class’s init_ui method with a new set_editor_font method. The chooser uses a custom QDialog with a QComboBox to display only monospaced font names (e.g., Consolas, Courier New, Unispace), defaulting to Consolas, enhancing accessibility for users preferring specific monospaced fonts for coding. The selected font is applied to both the Editor (CustomTextEdit) and Line Numbering (LineNumberArea), saved in ~/.superide/ide_settings.json under editor_font, and restored on IDE restart. Ensured robust restoration by updating the load_settings loop to iterate over all settings keys with error handling and simplifying editor_font validation to use case-insensitive font matching, preventing issues with fonts like Unispace not being recognized on startup.
 
 == Build 23.05.2025
 
