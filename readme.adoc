@@ -12,8 +12,6 @@ Added a font chooser to the Settings/Appearance menu, implemented in the IDE cla
 
 *Enhancements*:
 
-* Added "Report Issue" menu item under the Help menu to open `https://github.com/GreatCowBASIC/GCBIDE/issues` in the default web browser, enabling users to directly access the GitHub issues page for reporting bugs or feature requests. Implemented with a new `open_url` method in the `IDE` class for consistent URL handling and logging.
-* Added "Latest Release" menu item under the Help menu to open `https://github.com/GreatCowBASIC/GCBIDE/releases/tag/SuperIDE` in the default web browser, allowing users to check the latest IDE version. Utilizes the same `open_url` method for URL opening and terminal logging.
 * Added "UpperCase" (Ctrl+U) and "LowerCase" (Ctrl+L) menu items to the Edit menu, implemented in the `IDE` class’s `init_ui` method with new `upper_case` and `lower_case` methods, allowing direct case conversion of selected text.
 
 *Bug Fixes*:
