@@ -24,7 +24,7 @@ from collections import deque
 import uuid
 
 #build number
-BUILD_NUMBER = "05.25.2025"
+BUILD_NUMBER = "05.24.2025"
 
 # Global flag for HL: INFO messages (not user-settable)
 SHOW_HL_INFO = False  # Disabled to reduce clutter
@@ -33,7 +33,6 @@ SHOW_BAR_CONTROL = False  # Disabled to reduce clutter
 SHOW_FILE_INFO = False
 SHOW_TASK_INFO = False
 SHOW_TERMINAL_INFO = False
-SHOW_RULES_INFO = False
 
 # Helper function to get the base path for resources
 def resource_path(relative_path):
@@ -161,7 +160,7 @@ class SyntaxHighlighter:
                 with open(language_file, "r", encoding="utf-8") as f:
                     config = json.load(f)
                     self.highlighting_rules = []
-                    if SHOW_RULES_INFO:
+                    if SHOW_HL_INFO:
                         self.ide.terminal.log(f"HL: Loaded language file from {language_file}", "INFO")
 
                     try:
@@ -200,11 +199,13 @@ class SyntaxHighlighter:
                             flags = re.IGNORECASE if case_insensitive else 0
                             compiled_pattern = re.compile(pattern, flags)
                             self.highlighting_rules.append((compiled_pattern, format))
-                            if SHOW_RULES_INFO:
+                            if SHOW_HL_INFO:
                                 self.ide.terminal.log(f"HL: Loaded rule - Pattern: {pattern}, Color: {rule['color']}, Case Insensitive: {case_insensitive}", "INFO")
                         except re.error as e:
+                            if SHOW_HL_INFO:
                                 self.ide.terminal.log(f"HL: Invalid regex pattern '{rule.get('match', 'unknown')}' in JSON: {str(e)}", "ERROR")
                         except Exception as e:
+                            if SHOW_HL_INFO:
                                 self.ide.terminal.log(f"HL: Error processing rule {rule.get('match', 'unknown')}: {str(e)}", "ERROR")
             except json.JSONDecodeError as e:
                 if SHOW_HL_INFO:
@@ -217,13 +218,9 @@ class SyntaxHighlighter:
                 self.ide.terminal.log(f"HL: Language file not found at {language_file} after copy attempt", "ERROR")
 
     def schedule_highlighting(self):
-        if SHOW_HL_INFO:
-            self.ide.terminal.log("HL: Scheduling highlighting", "INFO")
-        if self.highlight_pending:
-            self.highlight_timer.stop()  # Reset timer
-            self.pending_changes.clear()  # Clear stale changes
-        self.highlight_pending = True
-        self.highlight_timer.start()
+        if not self.highlight_pending:
+            self.highlight_pending = True
+            self.highlight_timer.start()
 
     def on_contents_change(self, position, chars_removed, chars_added):
         if chars_removed > 0 or chars_added > 0:
@@ -233,71 +230,55 @@ class SyntaxHighlighter:
             end_block = doc.findBlock(end_position)
             if not end_block.isValid():
                 end_block = doc.lastBlock()
-            start_block_num = start_block.blockNumber()
-            end_block_num = end_block.blockNumber()
-            self.pending_changes.append((start_block_num, end_block_num))
-            if SHOW_HL_INFO:
-                self.ide.terminal.log(f"HL: Contents changed - pos: {position}, removed: {chars_removed}, added: {chars_added}, blocks: {start_block_num}-{end_block_num}", "INFO")
+            self.pending_changes.append((start_block.blockNumber(), end_block.blockNumber()))
             self.schedule_highlighting()
+            self.ide.terminal.log(f"Contents changed - pos: {position}, removed: {chars_removed}, added: {chars_added}, blocks: {start_block.blockNumber()}-{end_block.blockNumber()}", "INFO")
 
     def _apply_highlighting(self):
-        if SHOW_HL_INFO:
-            self.ide.terminal.log("HL: Applying highlighting", "INFO")
-        if not hasattr(self.text_edit, "file_path"):
+        if not hasattr(self.text_edit, "file_path") or not self.text_edit.file_path.lower().endswith(".gcb"):
             self.highlight_pending = False
-            if SHOW_HL_INFO:
-                self.ide.terminal.log("HL: No file_path, skipping highlighting", "INFO")
             return
-        # Allow highlighting for .gcb files, including unsaved
-        if not self.text_edit.file_path.lower().endswith(".gcb"):
+
+        if not self.block_comment_start or not self.block_comment_end:
+            if SHOW_HL_INFO:
+                self.ide.terminal.log("HL: Block comment patterns invalid, skipping block comment highlighting", "ERROR")
             self.highlight_pending = False
-            if SHOW_HL_INFO:
-                self.ide.terminal.log(f"HL: File {self.text_edit.file_path} is not .gcb, skipping highlighting", "INFO")
             return
+
         doc = self.text_edit.document()
         was_modified = doc.isModified()
+        if SHOW_HL_INFO:
+            self.ide.terminal.log(f"HL: Before highlighting - isUndoAvailable: {doc.isUndoAvailable()}, isModified: {was_modified}", "INFO")
+
         cursor = self.text_edit.cursorForPosition(self.text_edit.viewport().pos())
         first_visible_block = doc.findBlock(cursor.position())
-        # Use bottomRight to include partially visible bottom line
         last_visible_block = doc.findBlock(self.text_edit.cursorForPosition(
-            self.text_edit.viewport().rect().bottomRight()).position())
-        # Extend to next block if partially visible
-        if last_visible_block.isValid():
-            next_block = last_visible_block.next()
-            if next_block.isValid() and next_block.layout().position().y() < self.text_edit.viewport().rect().bottom():
-                last_visible_block = next_block
+            self.text_edit.viewport().rect().bottomLeft()).position())
         visible_range = (first_visible_block.blockNumber(), last_visible_block.blockNumber() if last_visible_block.isValid() else doc.blockCount() - 1)
-        if SHOW_HL_INFO:
-            self.ide.terminal.log(f"HL: Visible range: {visible_range[0]}-{visible_range[1]}", "INFO")
+
         blocks_to_highlight = set()
-        # Add pending changes
         for start_block_num, end_block_num in self.pending_changes:
             for block_num in range(start_block_num, end_block_num + 1):
                 block = doc.findBlockByNumber(block_num)
                 if block.isValid():
                     blocks_to_highlight.add(block_num)
-                    # Clear highlighted_blocks for modified blocks
-                    if block_num in self.highlighted_blocks:
-                        self.highlighted_blocks.remove(block_num)
             if SHOW_HL_INFO:
                 self.ide.terminal.log(f"HL: Added pending blocks {start_block_num}-{end_block_num} to highlight", "INFO")
         self.pending_changes.clear()
-        # Add all visible blocks if none pending
-        if not blocks_to_highlight:
-            block = first_visible_block
-            while block.isValid() and block.blockNumber() <= visible_range[1]:
-                block_num = block.blockNumber()
+
+        block = first_visible_block
+        while block.isValid() and block.blockNumber() <= visible_range[1]:
+            block_num = block.blockNumber()
+            if block_num not in self.highlighted_blocks:
                 blocks_to_highlight.add(block_num)
-                if block_num in self.highlighted_blocks:
-                    self.highlighted_blocks.remove(block_num)
-                block = block.next()
-            if SHOW_HL_INFO:
-                self.ide.terminal.log(f"HL: No pending changes, highlighting all visible blocks {visible_range[0]}-{visible_range[1]}", "INFO")
+            block = block.next()
+
         if not blocks_to_highlight:
             if SHOW_HL_INFO:
                 self.ide.terminal.log("HL: No blocks to highlight", "INFO")
             self.highlight_pending = False
             return
+
         in_block_comment = False
         block = doc.firstBlock()
         while block.isValid() and block.blockNumber() < visible_range[0]:
@@ -305,9 +286,11 @@ class SyntaxHighlighter:
             if block_data:
                 in_block_comment = block_data.get_in_block_comment()
             block = block.next()
+
         max_total_ranges = 10000
         was_undo_enabled = doc.isUndoRedoEnabled()
         doc.setUndoRedoEnabled(False)
+
         try:
             for block_num in sorted(blocks_to_highlight):
                 block = doc.findBlockByNumber(block_num)
@@ -316,11 +299,10 @@ class SyntaxHighlighter:
                         self.ide.terminal.log(f"HL: Invalid block number {block_num}, skipping", "ERROR")
                     continue
                 text = block.text()
-                if SHOW_HL_INFO:
-                    self.ide.terminal.log(f"HL: Highlighting block {block_num}: {text[:50]}...", "INFO")
                 block_length = len(text)
                 format_ranges = []
                 block_number = block.blockNumber()
+
                 if in_block_comment:
                     end_match = self.block_comment_end.search(text)
                     if end_match and end_match.end() <= block_length:
@@ -338,6 +320,7 @@ class SyntaxHighlighter:
                         else:
                             format_ranges.append((start_pos, block_length, self.highlighting_rules[0][1]))
                             in_block_comment = True
+
                 if not in_block_comment:
                     max_matches = 1000
                     for pattern, format in self.highlighting_rules[1:]:
@@ -356,10 +339,12 @@ class SyntaxHighlighter:
                             if not overlaps and end <= block_length:
                                 format_ranges.append((start, end, format))
                             match_count += 1
+
                 if len(format_ranges) > max_total_ranges:
                     if SHOW_HL_INFO:
                         self.ide.terminal.log(f"HL: Exceeded max total ranges ({max_total_ranges}) in block {block_number}", "ERROR")
                     continue
+
                 cursor = QTextCursor(block)
                 cursor.beginEditBlock()
                 try:
@@ -376,16 +361,18 @@ class SyntaxHighlighter:
                         cursor.mergeCharFormat(format)
                 finally:
                     cursor.endEditBlock()
+
                 self.highlighted_blocks.add(block_num)
                 block.setUserData(TextBlockData(block.text(), in_block_comment))
+
         finally:
             doc.setUndoRedoEnabled(was_undo_enabled)
             doc.setModified(was_modified)
             if SHOW_HL_INFO:
                 self.ide.terminal.log(f"HL: After highlighting - isUndoAvailable: {doc.isUndoAvailable()}, isModified: {doc.isModified()}", "INFO")
             self.highlight_pending = False
-        self.last_visible_range = visible_range
 
+        self.last_visible_range = visible_range
 
 class CustomTextEdit(QTextEdit):
     def __init__(self, ide):
@@ -467,12 +454,8 @@ class CustomTextEdit(QTextEdit):
             self._is_highlighting = True
             try:
                 if SHOW_HL_INFO:
-                    self.ide.terminal.log(f"HL: Text changed - isUndoAvailable: {self.document().isUndoAvailable()}, isModified: {self.document().isModified()}, file_path: {getattr(self, 'file_path', 'None')}", "INFO")
-                # Force immediate highlighting for .gcb files
-                if hasattr(self, "file_path") and self.file_path.lower().endswith(".gcb"):
-                    self.highlighter._apply_highlighting()
-                else:
-                    self.highlighter.schedule_highlighting()
+                    self.ide.terminal.log(f"HL: Text changed - isUndoAvailable: {self.document().isUndoAvailable()}, isModified: {self.document().isModified()}", "INFO")
+                self.highlighter.schedule_highlighting()
             except Exception as e:
                 if SHOW_HL_INFO:
                     self.ide.terminal.log(f"HL: Error in highlighting: {str(e)}", "ERROR")
