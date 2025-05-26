@@ -24,7 +24,7 @@ from collections import deque
 import uuid
 
 #build number
-BUILD_NUMBER = "05.25.2025"
+BUILD_NUMBER = "05.26.2025"
 
 # Global flag for HL: INFO messages (not user-settable)
 SHOW_HL_INFO = False  # Disabled to reduce clutter
@@ -916,8 +916,10 @@ class IDE(QMainWindow):
         else:
             self.check_file_timer.stop()
         self.button_bar = None
+        self._tasks_loaded = False  # Flag to track tasks loading
         self.init_ui()
         self.load_settings()
+        self.load_and_populate_tasks()  # Call after load_settings
         self.apply_theme()
         self.apply_terminal_settings()
         self.apply_logging_settings()
@@ -942,7 +944,8 @@ class IDE(QMainWindow):
             file_path = os.path.join(demo_dir, demo_file)
             if os.path.exists(file_path):
                 self.open_file_by_path(file_path)
-                self.terminal.log(f"Opened demo file: {file_path}", "INFO")
+                if SHOW_FILE_INFO:
+                    self.terminal.log(f"Opened demo file: {file_path}", "INFO")
             else:
                 self.terminal.log(f"Demo file not found: {file_path}", "ERROR")
 
@@ -1314,33 +1317,64 @@ class IDE(QMainWindow):
                 self.terminal.log(f"Button bar icon size set to {size}", "INFO")
 
     def populate_tasks_menu(self):
-        self.ide_tasks_menu.clear()
-        tasks_file = self.get_tasks_file_path()
+        """Populate the IDE Tasks menu with tasks from tasks.json, deferring file loading."""
+        self.ide_tasks_menu.clear()        
+        # Defer tasks loading until load_and_populate_tasks() is called after load_settings()
+        if not hasattr(self, '_tasks_loaded') or not self._tasks_loaded:
+            if SHOW_FILE_INFO:
+                self.terminal.log("Tasks not loaded yet, will be populated after settings load", "INFO")
+            action = self.ide_tasks_menu.addAction("Tasks loading...")
+            action.setEnabled(False)
+            return
+    
+        tasks_file = self.settings.get("tasks_file")        
         if not tasks_file:
+            self.terminal.log("No tasks file path available", "ERROR")
             action = self.ide_tasks_menu.addAction("No tasks available")
             action.setEnabled(False)
             return
-        tasks = self.parse_tasks_json(tasks_file)
-        if not tasks:
-            action = self.ide_tasks_menu.addAction("No tasks available")
+        
+        try:
+            tasks = self.parse_tasks_json(tasks_file)
+            if not tasks:
+                self.terminal.log("No tasks found in file", "INFO")
+                action = self.ide_tasks_menu.addAction("No tasks available")
+                action.setEnabled(False)
+            else:
+                for task in tasks:
+                    label = task.get("label", "Unnamed Task")
+                    if isinstance(label, list):
+                        label = label[0] if label else "Unnamed Task"
+                    if isinstance(label, str):
+                        label = re.sub(r'\[.*?\]', '', label).strip()
+                        if not label:
+                            label = "Unnamed Task"
+                    action = QAction(label, self)
+                    action.triggered.connect(lambda checked, t=task: self.run_task(task=t))
+                    shortcut = task.get("shortcut")
+                    if shortcut:
+                        action.setShortcut(shortcut)
+                        if SHOW_HL_INFO:
+                            self.terminal.log(f"Assigned shortcut '{shortcut}' to task '{label}'", "INFO")
+                    self.ide_tasks_menu.addAction(action)
+        except Exception as e:
+            self.terminal.log(f"Error populating tasks menu: {str(e)}", "ERROR")
+            action = self.ide_tasks_menu.addAction("Error loading tasks")
             action.setEnabled(False)
-        else:
-            for task in tasks:
-                label = task.get("label", "Unnamed Task")
-                if isinstance(label, list):
-                    label = label[0] if label else "Unnamed Task"
-                if isinstance(label, str):
-                    label = re.sub(r'\[.*?\]', '', label).strip()
-                    if not label:
-                        label = "Unnamed Task"
-                action = QAction(label, self)
-                action.triggered.connect(lambda checked, t=task: self.run_task(task=t))
-                shortcut = task.get("shortcut")
-                if shortcut:
-                    action.setShortcut(shortcut)
-                    if SHOW_HL_INFO:
-                        self.terminal.log(f"Assigned shortcut '{shortcut}' to task '{label}'", "INFO")
-                self.ide_tasks_menu.addAction(action)
+
+    def load_and_populate_tasks(self):
+        """Load tasks file and populate tasks menu after settings are loaded."""
+        self.terminal.log("Loading and populating tasks", "INFO")
+        try:
+            tasks_file = self.get_tasks_file_path()
+            if tasks_file:
+                self.settings["tasks_file"] = tasks_file  # Ensure tasks_file is stored
+            self._tasks_loaded = True
+            self.populate_tasks_menu()  # Repopulate after loading tasks
+        except Exception as e:
+            self.terminal.log(f"Error loading tasks file path: {str(e)}", "ERROR")
+            self._tasks_loaded = False
+            self.populate_tasks_menu()  # Populate with error state
 
     def open_tasks_menu(self):
         if not self.ide_tasks_menu:
@@ -1672,7 +1706,7 @@ class IDE(QMainWindow):
             self.error_action.setChecked(self.settings["show_errors"])
         if self.show_terminal_action:
             self.show_terminal_action.setChecked(self.settings["showTerminal"])
-        self.terminal.log(f"Applied logging settings: \nshow Info \t{self.settings['show_info']} \nshow Errors: \t{self.settings['show_errors']} \nshow Terminal: \t{self.settings['showTerminal']}", "INFO")
+        self.terminal.log(f"Applied logging settings: \n\tshow Info \t\t{self.settings['show_info']} \n\tshow Errors: \t{self.settings['show_errors']} \n\tshow Terminal: \t{self.settings['showTerminal']}", "INFO")
 
     def apply_text_settings(self, text_edit=None):
         font_db = QFontDatabase()

@@ -2,9 +2,19 @@
 :toc:
 
 
+== 26.05.2025
+
+Fixed:
+
+* Demo Files Not Loading on New Install.  Resolved an issue where demo files (`first-start-sample.gcb` and `This is useful list of tools for the IDE.txt`) were not loaded during a new installation.  
+
+  The problem was caused by `populate_tasks_menu()` calling `get_tasks_file_path()`, which indirectly triggered `save_settings()` via a font-related side effect (likely `set_editor_font()`), creating `ide_settings.json` before `load_settings()`. This prevented `first_time_settings` from being set to `True`, skipping `open_demo_files()`. The fix defers tasks file loading to a new `load_and_populate_tasks()` method called after `load_settings()`, adds error handling in `populate_tasks_menu()`, and uses a `_tasks_loaded` flag to ensure tasks are populated only after settings are loaded. Issue identified through terminal logs showing premature `save_settings()`; fix ensures `open_demo_files()` runs as intended.
+
+* The missing `This is useful list of tools for the IDE.txt` will still log an `[ERROR]` if not present in `C:\GCstudio\gcbasic\demos\`, but `first-start-sample.gcb` now loads correctly.
+
 == Build 25.05.2025
 
-Improvments:
+Improvements:
 
 * Fixed an issue where syntax highlighting did not update when typing content like #chip 16f88 into an empty .gcb file, despite correct highlighting after saving and reopening. 
 
