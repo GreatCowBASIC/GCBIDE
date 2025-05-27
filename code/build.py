@@ -3,7 +3,7 @@ import os
 import subprocess
 
 root_dir = "."  # Change to your project directory
-excluded_dirs = {"build", "dist"}  # Set folders to exclude
+excluded_dirs = {".", "build", "dist"}  # Set folders to exclude
 files_to_include = []
 
 # Walk through all subfolders and collect files

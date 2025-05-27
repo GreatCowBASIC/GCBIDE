@@ -1,8 +1,23 @@
 = GCBASIC Essential IDE Change Log
 :toc:
 
+== Build 27.05.2025
 
-== 26.05.2025
+New:
+
+* Added Installing_and_Using_GCBASIC_Essential_IDE.adoc. This covers how to create your own installation of develop the SuperIDE.
+
+Enhancements:
+
+* Modified the default IDE window size for new installations to 80% of the primary screen’s width and height, centered on the screen, by updating the set_default_geometry method. This replaces the previous fixed 800x600 size, providing a more proportional and user-friendly window size based on screen resolution.
+
+* Updated the Button Bar’s initial position for new installations to be horizontally centered on the screen (aligned with the Editor’s center) and vertically aligned with the menu bar’s Y position, by modifying the init_button_bar method. This ensures the Button Bar is prominently placed within the IDE’s client area.
+
+* Enhanced the print behavior to apply syntax highlighting to the entire .GCB file before printing, ensuring all content (e.g., #chip 16f88) is formatted correctly in the output. Added highlight_all_blocks method to SyntaxHighlighter to format all document blocks and print_file method to IDE to trigger full highlighting for .
+
+* Change behaviour of Help / License to load the license.txt file from the application local folder.
+
+== Build 26.05.2025
 
 Fixed:
 

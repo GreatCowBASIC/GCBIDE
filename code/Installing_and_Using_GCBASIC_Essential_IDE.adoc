@@ -1,0 +1,352 @@
+= Installing and Using GCBASIC Essential IDE (SuperIDE.py)
+:toc:
+:xrefstyle: short
+:docinfo: shared
+
+== Introduction
+
+The GCBASIC Essential IDE (`SuperIDE.py`) is a user-friendly program that helps you write, compile, and test `.GCB` files for the GCBASIC compiler, which is used to program microcontrollers. This program runs on Python, a popular programming language. This guide is designed for people who have never used Python before. It explains how to install Python, add the necessary components (called "dependencies" or "imports"), and start using the IDE to work with `.GCB` files.
+
+NOTE: This guide assumes you’re using a Windows computer and have the `SuperIDE.py` file. Instructions for Linux (e.g., Ubuntu) and macOS are included where they differ. If you need help with advanced settings, see <<Additional Resources>>. If you don’t know what Python or an IDE is, don’t worry—this guide explains everything step-by-step.
+
+== Prerequisites
+
+Before you begin, make sure you have:
+
+* A computer with Windows 10/11, Linux (e.g., Ubuntu 22.04), or macOS (e.g., Ventura 13).
+* An internet connection to download Python and other files.
+* The `SuperIDE.py` file, which you can get from the GCBASIC GitHub repository (see <<Additional Resources>>).
+* Permission to install software on your computer (you may need an administrator account).
+
+== Installing Python
+
+The IDE needs Python 3.8 or later to run. Python is a free programming language that includes many built-in tools (called "standard library modules") like `sys`, `os`, `json`, and others that the IDE uses. If you’ve never used Python, you’ll need to install it first.
+
+=== Step 1: Download Python
+
+1. Open your web browser (e.g., Chrome, Firefox, Edge).
+2. Go to the Python website: https://www.python.org/downloads/
+3. Look for the latest Python 3 version (e.g., Python 3.12.7 as of May 27, 2025).
+4. Download the installer for your system:
+   * **Windows**: Click the button for the Windows installer (e.g., `python-3.12.7-amd64.exe`).
+   * **Linux (Ubuntu)**: You’ll install via the terminal (see below).
+   * **macOS**: Click the button for the macOS installer (e.g., a `.pkg` file).
+
+=== Step 2: Install Python
+
+* **Windows**:
+  . Double-click the downloaded installer (e.g., `python-3.12.7-amd64.exe`).
+  . In the installer window, check the box labeled *Add Python to PATH*. This makes Python easier to use from the command line.
+  . Click *Install Now* or choose a custom location (e.g., `C:\Python312`). Wait for the installation to complete.
+  . To check if Python is installed, open the *Command Prompt*:
+    - Press `Win + R`, type `cmd`, and press Enter.
+    - Type:
+      ```
+      python --version
+      ```
+    - You should see: `Python 3.12.7` (or your version). If you see an error like “command not found,” restart your computer and try again, or reinstall Python with *Add Python to PATH* checked.
+
+* **Linux (Ubuntu)**:
+  . Open the *Terminal* (search for “Terminal” in your applications).
+  . Update your system’s package list:
+    ```
+    sudo apt update
+    ```
+  . Install Python and `pip` (Python’s package manager):
+    ```
+    sudo apt install python3 python3-pip
+    ```
+  . Check the installation:
+    ```
+    python3 --version
+    pip3 --version
+    ```
+    You should see versions like `Python 3.10.12` and `pip 22.0.2` (or newer).
+
+* **macOS**:
+  . Double-click the downloaded `.pkg` file and follow the on-screen instructions to install.
+  . Check the installation by opening the *Terminal* (search for “Terminal” in Spotlight):
+    ```
+    python3 --version
+    pip3 --version
+    ```
+  . If Python 3 isn’t installed, use Homebrew:
+    - Install Homebrew if needed:
+      ```
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      ```
+    - Install Python:
+      ```
+      brew install python
+      ```
+
+=== Step 3: Ensure pip is Installed
+
+`pip` is a tool that helps install additional Python packages, like `PyQt5`, which the IDE needs for its graphical interface. It’s usually included with Python 3.4+.
+
+1. Open a *Command Prompt* (Windows) or *Terminal* (Linux/macOS).
+2. Check if `pip` is installed:
+   ```
+   pip --version
+   ```
+   or for Linux/macOS:
+   ```
+   pip3 --version
+   ```
+3. If you see a version (e.g., `pip 24.0`), `pip` is installed. If you get an error like “command not found,” install it:
+   - Download `get-pip.py` from https://bootstrap.pypa.io/get-pip.py (right-click, Save As).
+   - Run:
+     ```
+     python get-pip.py
+     ```
+     or for Linux/macOS:
+     ```
+     python3 get-pip.py
+     ```
+
+== Installing Required Dependencies via pip
+
+The IDE uses two types of components (called "imports"):
+- **Built-in Modules**: Tools like `sys`, `os`, `json`, `re`, `html`, `socket`, `errno`, `subprocess`, `tempfile`, `time`, `webbrowser`, `glob`, `shutil`, `collections.deque`, and `uuid` come with Python. Installing Python (above) ensures these are available.
+- **External Package**: `PyQt5` creates the IDE’s windows, buttons, and text editor. It’s not included with Python and must be installed separately.
+
+=== Open a Command Prompt or Terminal
+
+* **Windows**: Press `Win + R`, type `cmd`, and press Enter.
+* **Linux/macOS**: Open your *Terminal* application.
+
+=== Create a Requirements File
+
+To install `PyQt5` correctly, you need to create a file called `requirements.txt`. This file tells `pip` exactly which packages to install and their versions, ensuring the IDE works properly.
+
+1. Open a text editor:
+   * Windows: Use Notepad (search for “Notepad” in the Start menu).
+   * Linux/macOS: Use `nano` in the Terminal:
+     ```
+     nano requirements.txt
+     ```
+2. Type or paste the following line into the file:
+   ```
+   PyQt5>=5.15.10
+   ```
+   - *PyQt5>=5.15.10*: This means `pip` will install the `PyQt5` package, version 5.15.10 or newer. `PyQt5` is the library that makes the IDE’s graphical interface work, and this version ensures compatibility.
+3. Save the file in the same folder as `SuperIDE.py` (e.g., `C:\GCBASIC\IDE` or `~/GCBASIC/IDE`):
+   * Windows: In Notepad, click File > Save As, choose “All Files” in “Save as type,” name it `requirements.txt`, and save.
+   * Linux/macOS: In `nano`, press `Ctrl+O`, Enter to save, then `Ctrl+X` to exit.
+4. Confirm the file exists by listing the directory contents:
+   ```
+   dir  # Windows
+   ls   # Linux/macOS
+   ```
+   You should see `requirements.txt`.
+
+NOTE: The `requirements.txt` file is not included with `SuperIDE.py` or the GCBASIC distribution. You create it yourself to list the IDE’s dependencies, making installation easier and more reliable.
+
+=== Install Dependencies from the Requirements File
+
+Now, use `pip` to install `PyQt5` as specified in `requirements.txt`. This process, called "installing from the file," uses one command to set up all dependencies:
+
+1. In the *Command Prompt* or *Terminal*, navigate to the folder containing `requirements.txt` and `SuperIDE.py`:
+   ```
+   cd C:\GCBASIC\IDE
+   ```
+   or for Linux/macOS:
+   ```
+   cd ~/GCBASIC/IDE
+   ```
+2. Run:
+   ```
+   pip install -r requirements.txt
+   ```
+   This downloads and installs `PyQt5` (version 5.15.10 or later).
+
+=== Verify Installation
+
+1. Check installed packages:
+   ```
+   pip list
+   ```
+   Look for `PyQt5` (e.g., version 5.15.10 or later). You’ll see something like:
+   ```
+   PyQt5        5.15.10
+   ```
+2. If `PyQt5` isn’t listed or installation fails, update `pip`:
+   ```
+   pip install --upgrade pip
+   ```
+   Then retry:
+   ```
+   pip install -r requirements.txt
+   ```
+3. Test that all imports work by running a small Python script:
+   - Create a file named `test_imports.py` in the same folder as `SuperIDE.py` using your text editor.
+   - Paste the following:
+     
+     import sys
+     import os
+     import os.path
+     import json
+     import re
+     import html
+     import socket
+     import errno
+     import subprocess
+     import tempfile
+     import time
+     import webbrowser
+     import glob
+     import shutil
+     from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
+                                  QMenuBar, QAction, QFileDialog, QDockWidget, QListWidget, QMessageBox,
+                                  QInputDialog, QMenu, QFrame, QDialog, QDialogButtonBox, QTextBrowser, QComboBox,
+                                  QPushButton, QHBoxLayout, QLabel, QFontDialog)
+     from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
+     from PyQt5.QtGui import QTextOption, QTextDocument, QFont, QPainter, QFontMetrics, QTextCursor, QIcon, QTextCharFormat, QColor, QImage
+     from PyQt5.QtCore import Qt, QUrl, QPoint, QTimer, QRect, QByteArray, QSize, QEvent
+     from PyQt5.QtGui import QDesktopServices, QTextBlockUserData, QFontDatabase
+     from collections import deque
+     import uuid
+     print("All imports are installed successfully!")
+
+   - Save the file and run:
+     ```
+     python test_imports.py
+     ```
+     or for Linux/macOS:
+     ```
+     python3 test_imports.py
+     ```
+   - If you see “All imports are installed successfully!” with no errors, all dependencies are set up correctly.
+
+== Preparing the SuperIDE.py File
+
+=== Obtain SuperIDE.py
+
+1. Download `SuperIDE.py` from the GCBASIC GitHub repository: https://github.com/GreatCowBASIC/GCBIDE
+   - Visit the link in your browser, navigate to the repository’s files, and download `SuperIDE.py` (e.g., right-click, Save As).
+2. Save it in a folder like:
+   * Windows: `C:\GCBASIC\IDE`
+   * Linux/macOS: `~/GCBASIC/IDE`
+   - Create the folder if it doesn’t exist:
+     ```
+     mkdir C:\GCBASIC\IDE  # Windows
+     mkdir ~/GCBASIC/IDE   # Linux/macOS
+     ```
+
+=== Ensure Supporting Files
+
+The IDE needs a few extra files to work fully:
+
+* **`GCB.tmLanguage.json`**: This file tells the IDE how to color-code `.GCB` files (e.g., making `#chip 16f88` blue).
+  - Check if it’s in `~/.superide/`:
+    * Windows: `C:\Users\<YourUsername>\.superide\`
+    * Linux/macOS: `~/.superide/`
+  - If missing, find it in the GCBASIC distribution or repository (e.g., on GitHub) and copy it to `~/.superide/`.
+  - Create the `.superide` folder if needed:
+    ```
+    mkdir C:\Users\<YourUsername>\.superide  # Windows
+    mkdir ~/.superide                       # Linux/macOS
+    ```
+
+* **Icon Files**: Images like `hexflash.png` and `hex.png` make the Button Bar look nice.
+  - Place them in the IDE’s folder (e.g., `C:\GCBASIC\IDE`) or `~/.superide/gcb-icons/24_24_icons/`.
+  - If missing, check the GCBASIC distribution or repository for a `gcb-icons` folder.
+
+NOTE: If icons are missing, the Button Bar may show numbers (1–4) instead of images. See <<Troubleshooting>> for help.
+
+=== Set Up Configuration
+
+The first time you run the IDE, it creates a settings file called `ide_settings.json` in `~/.superide/`. This file sets things like the window size (80% of your screen) and Button Bar position (centered). You can skip manual setup for now—it’ll work automatically.
+
+== Running the IDE
+
+=== Navigate to the Directory
+
+1. Open a *Command Prompt* (Windows) or *Terminal* (Linux/macOS).
+2. Go to the folder with `SuperIDE.py`:
+   ```
+   cd C:\GCBASIC\IDE
+   ```
+   or for Linux/macOS:
+   ```
+   cd ~/GCBASIC/IDE
+   ```
+
+=== Launch the IDE
+
+Run the IDE:
+
+```
+python SuperIDE.py
+```
+
+For Linux/macOS:
+
+```
+python3 SuperIDE.py
+```
+
+The IDE should open as a window on your screen, taking up about 80% of the space and centered. You’ll see a menu bar at the top, a Button Bar (with buttons like `[F5]`), and a blank area for editing code.
+
+=== Verify It Works
+
+* Check that the IDE opens with a menu bar, Button Bar, and blank Editor.
+* Create a new file (File > New) and type `#chip 16f88`. It should turn blue, showing that coloring works.
+* Try printing (File > Print) to a PDF or printer and confirm the code is colored in the output.
+* If you see errors, check <<Troubleshooting>>.
+
+== Basic Usage
+
+=== Creating a New File
+
+1. Click menu:File[New] to start a new `.GCB` file. It’ll have a sample code like `#CHIP`.
+2. Type code in the Editor. Words like `#chip 16f88` should change color as you type.
+
+=== Opening and Saving Files
+
+* Click menu:File[Open] to open a `.GCB` file (e.g., `C:\Temp\t.gcb`).
+* Save your work with menu:File[Save] or menu:File[Save As].
+
+=== Using the Button Bar
+
+* Click buttons like `[F5]` (Make HEX and Flash) to run tasks (e.g., compile code).
+* You can drag the Button Bar to move it; the new position saves automatically.
+
+=== Printing Code
+
+1. Click menu:File[Print] to open a print window.
+2. For `.GCB` files, all code (like `#chip 16f88`) will be colored in the printout.
+3. Choose a printer or save as a PDF to check the result.
+
+=== Changing Settings
+
+* Use menu:IDE Settings[] to change things like the font or colors.
+* For more options, edit `~/.superide/ide_settings.json` with a text editor (see `readme.adoc`).
+
+== Troubleshooting
+
+[cols="1,3"]
+|===
+|Issue |Solution
+
+|Python Not Found
+|Reinstall Python, checking *Add Python to PATH*. Try the full path: `C:\Python312\python.exe SuperIDE.py`.
+
+|PyQt5 Not Installed
+|Run `pip install -r requirements.txt` again. Check errors in the Terminal and ensure an internet connection.
+
+|No Colors in Code
+|Check `GCB.tmLanguage.json` is in `~/.superide/`. In `SuperIDE.py`, set `SHOW_HL_INFO = True` and check logs (menu:View[Debug Terminal]).
+
+|Button Bar Shows Numbers
+|Copy `hexflash.png`, `hex.png`, etc., to `~/.superide/gcb-icons/24_24_icons/` or the IDE folder. Set `button_bar.position` to `[]` in `ide_settings.json`.
+
+|Printing Isn’t Colored
+|Ensure you’re printing a `.GCB` file. Use PDF output to test. Check logs for “Highlighting all blocks for printing.”
+|===
+
+== Additional Resources
+
+* **GCBASIC GitHub**: https://github.com/GreatCowBASIC/GCBIDE for source code, issues, and updates.
+* **Readme**: See `readme.adoc` for the changelog and feature details.
+* **Community Support**: Visit the GCBASIC forums for `.GCB` file and IDE support.

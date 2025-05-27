@@ -24,9 +24,8 @@ from collections import deque
 import uuid
 
 #build number
-BUILD_NUMBER = "05.26.2025"
+BUILD_NUMBER = "05.27.2025"
 
-# Global flag for HL: INFO messages (not user-settable)
 SHOW_HL_INFO = False  # Disabled to reduce clutter
 SHOW_FONT_CONTROL = False
 SHOW_BAR_CONTROL = False  # Disabled to reduce clutter
@@ -34,6 +33,9 @@ SHOW_FILE_INFO = False
 SHOW_TASK_INFO = False
 SHOW_TERMINAL_INFO = False
 SHOW_RULES_INFO = False
+
+
+HIGHLIGHT_TIMER_INTERVAL = 100   #100 ms
 
 # Helper function to get the base path for resources
 def resource_path(relative_path):
@@ -120,7 +122,7 @@ class SyntaxHighlighter:
         self.highlight_timer = QTimer()
         self.highlight_timer.setSingleShot(True)
         self.highlight_timer.timeout.connect(self._apply_highlighting)
-        self.highlight_timer.setInterval(500)
+        self.highlight_timer.setInterval( HIGHLIGHT_TIMER_INTERVAL )
         self.highlight_pending = False
         self.last_visible_range = None
         self.highlighted_blocks = set()
@@ -385,6 +387,87 @@ class SyntaxHighlighter:
                 self.ide.terminal.log(f"HL: After highlighting - isUndoAvailable: {doc.isUndoAvailable()}, isModified: {doc.isModified()}", "INFO")
             self.highlight_pending = False
         self.last_visible_range = visible_range
+
+    def highlight_all_blocks(self):
+        if SHOW_HL_INFO:
+            self.ide.terminal.log("HL: Highlighting all blocks for printing", "INFO")
+        if not hasattr(self.text_edit, "file_path") or not self.text_edit.file_path.lower().endswith(".gcb"):
+            if SHOW_HL_INFO:
+                self.ide.terminal.log("HL: Not a .gcb file, skipping full highlighting", "INFO")
+            return
+        doc = self.text_edit.document()
+        was_modified = doc.isModified()
+        was_undo_enabled = doc.isUndoRedoEnabled()
+        doc.setUndoRedoEnabled(False)
+        try:
+            block = doc.firstBlock()
+            while block.isValid():
+                block_num = block.blockNumber()
+                text = block.text()
+                block_length = len(text)
+                format_ranges = []
+                in_block_comment = False
+                block_data = block.userData()
+                if block_data:
+                    in_block_comment = block_data.get_in_block_comment()
+                if in_block_comment:
+                    end_match = self.block_comment_end.search(text)
+                    if end_match and end_match.end() <= block_length:
+                        format_ranges.append((0, end_match.end(), self.highlighting_rules[0][1]))
+                        in_block_comment = False
+                    else:
+                        format_ranges.append((0, block_length, self.highlighting_rules[0][1]))
+                else:
+                    start_match = self.block_comment_start.search(text)
+                    if start_match:
+                        start_pos = start_match.start()
+                        end_match = self.block_comment_end.search(text, start_pos)
+                        if end_match and end_match.end() <= block_length:
+                            format_ranges.append((start_pos, end_match.end(), self.highlighting_rules[0][1]))
+                        else:
+                            format_ranges.append((start_pos, block_length, self.highlighting_rules[0][1]))
+                            in_block_comment = True
+                if not in_block_comment:
+                    max_matches = 1000
+                    for pattern, format in self.highlighting_rules[1:]:
+                        match_count = 0
+                        for match in pattern.finditer(text):
+                            if match_count >= max_matches:
+                                if SHOW_HL_INFO:
+                                    self.ide.terminal.log(f"HL: Reached max matches ({max_matches}) for pattern {pattern.pattern}", "WARNING")
+                                break
+                            start, end = match.start(), match.end()
+                            overlaps = False
+                            for r_start, r_end, _ in format_ranges:
+                                if (start >= r_start and start < r_end) or (end > r_start and end <= r_end) or (start <= r_start and end >= r_end):
+                                    overlaps = True
+                                    break
+                            if not overlaps and end <= block_length:
+                                format_ranges.append((start, end, format))
+                            match_count += 1
+                cursor = QTextCursor(block)
+                cursor.beginEditBlock()
+                try:
+                    cursor.setPosition(block.position())
+                    cursor.setPosition(block.position() + block_length, QTextCursor.KeepAnchor)
+                    cursor.setCharFormat(QTextCharFormat())
+                    for start, end, format in format_ranges:
+                        if end > block_length:
+                            if SHOW_HL_INFO:
+                                self.ide.terminal.log(f"HL: Skipping invalid range ({start}, {end}) in block {block_num}", "ERROR")
+                            continue
+                        cursor.setPosition(block.position() + start)
+                        cursor.setPosition(block.position() + end, QTextCursor.KeepAnchor)
+                        cursor.mergeCharFormat(format)
+                finally:
+                    cursor.endEditBlock()
+                block.setUserData(TextBlockData(block.text(), in_block_comment))
+                block = block.next()
+        finally:
+            doc.setUndoRedoEnabled(was_undo_enabled)
+            doc.setModified(was_modified)
+            if SHOW_HL_INFO:
+                self.ide.terminal.log("HL: Completed highlighting all blocks", "INFO")
 
 
 class CustomTextEdit(QTextEdit):
@@ -1268,7 +1351,14 @@ class IDE(QMainWindow):
             menu_bar_height = self.menuBar().height()
             bar_width = (button_size + 2) * self.button_bar.layout().count() + 4
             default_x = window_width // 2 - bar_width // 2  # 50% of window width
-            default_y = menu_bar_height  # Align with bottom of menu bar
+            #default_y = menu_bar_height  # Align with bottom of menu bar
+
+            # Align Y with menu bar (top of IDE client area)
+            menu_bar_rect = self.menuBar().geometry()
+            default_y = self.pos().y() + menu_bar_rect.y() + int( menu_bar_height / 4 * 3 )  # Menu bar Y relative to screen
+
+
+
             position = button_bar_settings.get("position", [])
             if not position or len(position) != 2:
                 pos_x, pos_y = default_x, default_y
@@ -1933,6 +2023,22 @@ class IDE(QMainWindow):
         print_dialog = QPrintDialog(printer, self)
         if print_dialog.exec_() == QPrintDialog.Accepted:
             current_tab.document().print_(printer)
+    
+    def print_file(self):
+        text_edit = self.tabs.currentWidget()
+        if not isinstance(text_edit, CustomTextEdit):
+            self.terminal.log("No file open to print", "ERROR")
+            return
+        printer = QPrinter(QPrinter.HighResolution)
+        dialog = QPrintDialog(printer, self)
+        if dialog.exec_() != QPrintDialog.Accepted:
+            return
+        # Highlight entire .GCB file
+        if hasattr(text_edit, "file_path") and text_edit.file_path.lower().endswith(".gcb"):
+            text_edit.highlighter.highlight_all_blocks()
+        doc = text_edit.document().clone()
+        doc.print_(printer)
+        self.terminal.log(f"Printed file: {text_edit.file_path if hasattr(text_edit, 'file_path') else 'untitled'}", "INFO")
 
     def close_tab(self, index):
         tab = self.tabs.widget(index)
@@ -2647,10 +2753,18 @@ class IDE(QMainWindow):
             self.first_time_settings = True
             self.terminal.log("Error loading settings, flag set to open demo files", "INFO")
 
-
     def set_default_geometry(self):
-        self.settings["window_size"] = [800, 600]
-        self.settings["window_position"] = [0, 0]
+        screen = QApplication.primaryScreen().availableGeometry()
+        width = int(screen.width() * 0.8)  # % of screen width
+        height = int(screen.height() * 0.8)  # % of screen height
+        x = (screen.width() - width) // 2  # Center horizontally
+        y = (screen.height() - height) // 2  # Center vertically
+        self.settings["window_size"] = [width, height]
+        self.settings["window_position"] = [x, y]
+        if SHOW_FILE_INFO:
+            self.terminal.log(f"Set default geometry - size: {width}x{height}, position: [{x}, {y}]", "INFO")
+            
+
 
     def toggle_line_numbers(self):
         self.settings["line_numbers"] = not self.settings["line_numbers"]
@@ -2677,7 +2791,7 @@ class IDE(QMainWindow):
                     QApplication.clipboard().setText(full_path)
 
     def show_license(self):
-        license_file = "license.txt"
+        license_file = os.path.join(os.path.dirname(__file__), "license.txt")
         license_text = None
         encodings = ["utf-8", "windows-1252", "latin1"]
         if os.path.exists(license_file):
