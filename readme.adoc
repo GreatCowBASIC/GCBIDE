@@ -1,6 +1,16 @@
 = GCBASIC Essential IDE Change Log
 :toc:
 
+== Build 28.05.2025
+
+Enhancements:
+
+* Change behaviour of Help / License to load the license.txt file from the application local folder.
+
+* Added Enum to language file.
+
+* Add RAR to DIST folder.
+
 == Build 27.05.2025
 
 New:
@@ -15,7 +25,6 @@ Enhancements:
 
 * Enhanced the print behavior to apply syntax highlighting to the entire .GCB file before printing, ensuring all content (e.g., #chip 16f88) is formatted correctly in the output. Added highlight_all_blocks method to SyntaxHighlighter to format all document blocks and print_file method to IDE to trigger full highlighting for .
 
-* Change behaviour of Help / License to load the license.txt file from the application local folder.
 
 == Build 26.05.2025
 

@@ -24,7 +24,7 @@ from collections import deque
 import uuid
 
 #build number
-BUILD_NUMBER = "05.27.2025"
+BUILD_NUMBER = "05.28.2025"
 
 SHOW_HL_INFO = False  # Disabled to reduce clutter
 SHOW_FONT_CONTROL = False
@@ -35,7 +35,7 @@ SHOW_TERMINAL_INFO = False
 SHOW_RULES_INFO = False
 
 
-HIGHLIGHT_TIMER_INTERVAL = 100   #100 ms
+HIGHLIGHT_TIMER_INTERVAL = 50   #was 500 ms
 
 # Helper function to get the base path for resources
 def resource_path(relative_path):
