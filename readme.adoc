@@ -1,6 +1,18 @@
 = GCBASIC Essential IDE Change Log
 :toc:
 
+== Build 30.05.2025
+
+New:
+
+Expose the compiler timeout in the IDE Settings menu.  This is a unique feature that prevents the GCBASIC from 'locking' the IDE by getting stuck.  This defaults to a timeout of 30 seconds.  After the timeout the IDE will gracefully close the compiler and issue a timeout message.    All previous IDE would could 'lock' up.
+
+* Added configurable gcbasic_timeout setting for GCBASIC task execution, defaulting to 30 seconds.
+* Added "GCBASIC Timeout" menu item under IDE Settings/Logging to set timeout (range 5-999 seconds).
+* Updated save_settings and load_settings to handle gcbasic_timeout persistence.
+* Modified set_gcbasic_timeout dialog to use "GCBASIC Timeout" title and enforce 5-999 second range.
+
+
 == Build 28.05.2025
 
 Enhancements:

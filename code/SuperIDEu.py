@@ -24,7 +24,7 @@ from collections import deque
 import uuid
 
 #build number
-BUILD_NUMBER = "05.28.2025"
+BUILD_NUMBER = "05.30.2025"
 
 SHOW_HL_INFO = False  # Disabled to reduce clutter
 SHOW_FONT_CONTROL = False
@@ -1229,6 +1229,14 @@ class IDE(QMainWindow):
         reset_terminal_action = QAction("Reset Terminal Position", self)
         reset_terminal_action.triggered.connect(self.reset_terminal_position)
         logging_menu.addAction(reset_terminal_action)
+        gcbasic_timeout_action = QAction("&GCBASIC Compiler Timeout", self)
+        gcbasic_timeout_action.triggered.connect(self.set_gcbasic_timeout)
+        logging_menu.addAction(gcbasic_timeout_action)
+        external_checks_action = QAction("Check &External Modifications", self)
+        external_checks_action.setCheckable(True)
+        external_checks_action.setChecked(self.settings["check_external_modifications"])
+        external_checks_action.triggered.connect(self.toggle_external_checks)
+        editor_menu.addAction(external_checks_action)
         clear_recent_action = QAction("&Clear Recent Files", self)
         clear_recent_action.triggered.connect(self.clear_recent_files)
         recent_files_menu.addAction(clear_recent_action)
@@ -1688,7 +1696,7 @@ class IDE(QMainWindow):
                             stdout=temp_file,
                             stderr=temp_file,
                             shell=True,
-                            timeout=30
+                            timeout=self.settings.get("gcbasic_timeout", 30)
                         )
                 except subprocess.TimeoutExpired:
                     self.terminal.log("Process took too long and was terminated. Use GCBASIC - Debug Mode", "ERROR")
@@ -2598,7 +2606,9 @@ class IDE(QMainWindow):
         # Ensure editor_font is defined
         if "editor_font" not in self.settings or not isinstance(self.settings["editor_font"], str):
             self.settings["editor_font"] = "Consolas"
-            # self.terminal.log("Ensured editor_font is set to Consolas before saving", "INFO")
+        # Ensure gcbasic_timeout is defined
+        if "gcbasic_timeout" not in self.settings or not isinstance(self.settings["gcbasic_timeout"], int):
+            self.settings["gcbasic_timeout"] = 30
         try:
             with open(settings_path, "w", encoding="utf-8") as f:
                 json.dump(self.settings, f, indent=4)
@@ -2648,6 +2658,9 @@ class IDE(QMainWindow):
                 if "editor_font_size" not in self.settings or not isinstance(self.settings["editor_font_size"], int):
                     self.settings["editor_font_size"] = 12
                     self.terminal.log("Set default editor_font_size to 12", "INFO")
+                if "gcbasic_timeout" not in self.settings or not isinstance(self.settings["gcbasic_timeout"], int):
+                    self.settings["gcbasic_timeout"] = 30
+                    self.terminal.log("Set default gcbasic_timeout to 30", "INFO")
                 if "last_folder" not in self.settings or not isinstance(self.settings["last_folder"], str):
                     self.settings["last_folder"] = os.path.expanduser("~")
                     self.terminal.log("Set default last_folder to home directory", "INFO")
@@ -2712,6 +2725,7 @@ class IDE(QMainWindow):
             self.set_default_geometry()
             self.settings["editor_font"] = "Consolas"
             self.settings["editor_font_size"] = 12
+            self.settings["gcbasic_timeout"] = 30
             self.settings["button_bar"] = default_button_bar
             self.addDockWidget(Qt.BottomDockWidgetArea, self.dock)
             self.apply_screen_size_and_position()
@@ -2728,6 +2742,7 @@ class IDE(QMainWindow):
             self.set_default_geometry()
             self.settings["editor_font"] = "Consolas"
             self.settings["editor_font_size"] = 12
+            self.settings["gcbasic_timeout"] = 30
             self.settings["button_bar"] = default_button_bar
             self.addDockWidget(Qt.BottomDockWidgetArea, self.dock)
             self.apply_screen_size_and_position()
@@ -2744,6 +2759,7 @@ class IDE(QMainWindow):
             self.set_default_geometry()
             self.settings["editor_font"] = "Consolas"
             self.settings["editor_font_size"] = 12
+            self.settings["gcbasic_timeout"] = 30
             self.settings["button_bar"] = default_button_bar
             self.addDockWidget(Qt.BottomDockWidgetArea, self.dock)
             self.apply_screen_size_and_position()
@@ -2847,6 +2863,14 @@ class IDE(QMainWindow):
                     self.terminal.log(f"No save prompt for {tab.file_path} (modified: {tab.document().isModified()})", "INFO")
         self.save_settings()
         event.accept()
+
+    def set_gcbasic_timeout(self):
+        timeout, ok = QInputDialog.getInt(self, "Compiler Control ", "Timeout in seconds (5-999):", self.settings["gcbasic_timeout"], 1, 999)
+        if ok:
+            self.settings["gcbasic_timeout"] = timeout
+            self.save_settings()
+            # self.terminal.log(f"Set GCBASIC timeout to {timeout} seconds", "INFO")
+
 
 if __name__ == "__main__":
     lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
