@@ -24,7 +24,7 @@ from collections import deque
 import uuid
 
 #build number
-BUILD_NUMBER = "05.30.2025"
+BUILD_NUMBER = "05.31.2025"
 
 SHOW_HL_INFO = False  # Disabled to reduce clutter
 SHOW_FONT_CONTROL = False
@@ -35,7 +35,7 @@ SHOW_TERMINAL_INFO = False
 SHOW_RULES_INFO = False
 
 
-HIGHLIGHT_TIMER_INTERVAL = 50   #was 500 ms
+HIGHLIGHT_TIMER_INTERVAL = 100   #was 500 ms
 
 # Helper function to get the base path for resources
 def resource_path(relative_path):
@@ -116,19 +116,97 @@ class SyntaxHighlighter:
     def __init__(self, text_edit, ide):
         self.text_edit = text_edit
         self.ide = ide
+        self.block_format_cache = {}  # Cache for format_ranges and comment state
         self.highlighting_rules = []
         self.block_comment_start = None
         self.block_comment_end = None
+        self.last_block_count = self.text_edit.document().blockCount()
         self.highlight_timer = QTimer()
         self.highlight_timer.setSingleShot(True)
         self.highlight_timer.timeout.connect(self._apply_highlighting)
-        self.highlight_timer.setInterval( HIGHLIGHT_TIMER_INTERVAL )
+        self.highlight_timer.setInterval(HIGHLIGHT_TIMER_INTERVAL)
         self.highlight_pending = False
         self.last_visible_range = None
         self.highlighted_blocks = set()
         self.load_highlighting_rules()
         self.text_edit.document().contentsChange.connect(self.on_contents_change)
+        self.text_edit.document().blockCountChanged.connect(self.block_count_changed)
         self.pending_changes = []
+
+    def highlight_all_blocks(self):
+        if SHOW_HL_INFO:
+            self.ide.terminal.log("HL: Highlighting all blocks for printing", "INFO")
+        if not hasattr(self.text_edit, "file_path") or not self.text_edit.file_path.lower().endswith(".gcb"):
+            return
+        doc = self.text_edit.document()
+        was_modified = doc.isModified()
+        was_undo_enabled = doc.isUndoRedoEnabled()
+        doc.setUndoRedoEnabled(False)
+        try:
+            block = doc.firstBlock()
+            in_block_comment = False
+            while block.isValid():
+                block_num = block.blockNumber()
+                text = block.text()
+                block_length = len(text)
+                format_ranges = []
+                if in_block_comment:
+                    end_match = self.block_comment_end.search(text)
+                    if end_match and end_match.end() <= block_length:
+                        format_ranges.append((0, end_match.end(), self.highlighting_rules[0][1]))
+                        in_block_comment = False
+                    else:
+                        format_ranges.append((0, block_length, self.highlighting_rules[0][1]))
+                else:
+                    start_match = self.block_comment_start.search(text)
+                    if start_match:
+                        start_pos = start_match.start()
+                        end_match = self.block_comment_end.search(text, start_pos)
+                        if end_match and end_match.end() <= block_length:
+                            format_ranges.append((start_pos, end_match.end(), self.highlighting_rules[0][1]))
+                        else:
+                            format_ranges.append((start_pos, block_length, self.highlighting_rules[0][1]))
+                            in_block_comment = True
+                if not in_block_comment:
+                    max_matches = 1000
+                    for pattern, format in self.highlighting_rules[1:]:
+                        match_count = 0
+                        for match in pattern.finditer(text):
+                            if match_count >= max_matches:
+                                self.ide.terminal.log(f"HL: Reached max matches ({max_matches}) for pattern {pattern.pattern}", "ERROR")
+                                break
+                            start, end = match.start(), match.end()
+                            if end <= block_length:
+                                format_ranges.append((start, end, format))
+                            match_count += 1
+                if len(format_ranges) > 10000:  # Use max_total_ranges
+                    self.ide.terminal.log(f"HL: Exceeded max total ranges (10000) in block {block_num}", "ERROR")
+                    block = block.next()
+                    continue
+                cursor = QTextCursor(block)
+                cursor.beginEditBlock()
+                try:
+                    cursor.setPosition(block.position())
+                    cursor.setPosition(block.position() + block_length, QTextCursor.KeepAnchor)
+                    cursor.setCharFormat(QTextCharFormat())  # Clear existing formats
+                    format_ranges.sort(key=lambda x: x[0])  # Sort by start position
+                    for start, end, format in format_ranges:
+                        if end > block_length:
+                            self.ide.terminal.log(f"HL: Skipping invalid range ({start}, {end}) in block {block_num}", "ERROR")
+                            continue
+                        cursor.setPosition(block.position() + start)
+                        cursor.setPosition(block.position() + end, QTextCursor.KeepAnchor)
+                        cursor.mergeCharFormat(format)
+                finally:
+                    cursor.endEditBlock()
+                self.highlighted_blocks.add(block_num)
+                block.setUserData(TextBlockData(block.text(), in_block_comment))
+                block = block.next()
+        finally:
+            doc.setUndoRedoEnabled(was_undo_enabled)
+            doc.setModified(was_modified)
+        if SHOW_HL_INFO:
+            self.ide.terminal.log("HL: Completed highlighting all blocks", "INFO")
 
     def load_highlighting_rules(self):
         """Load highlighting rules from JSON configuration in user directory, copying from fallback if needed."""
@@ -227,24 +305,32 @@ class SyntaxHighlighter:
         self.highlight_pending = True
         self.highlight_timer.start()
 
-    def on_contents_change(self, position, chars_removed, chars_added):
-        if chars_removed > 0 or chars_added > 0:
-            doc = self.text_edit.document()
-            start_block = doc.findBlock(position)
-            end_position = position + chars_added
-            end_block = doc.findBlock(end_position)
-            if not end_block.isValid():
-                end_block = doc.lastBlock()
-            start_block_num = start_block.blockNumber()
-            end_block_num = end_block.blockNumber()
+    def block_count_changed(self, new_block_count):
+        if new_block_count != self.last_block_count:
+            start_block_num = 0  # Rehighlight all blocks
+            end_block_num = new_block_count - 1
             self.pending_changes.append((start_block_num, end_block_num))
             if SHOW_HL_INFO:
-                self.ide.terminal.log(f"HL: Contents changed - pos: {position}, removed: {chars_removed}, added: {chars_added}, blocks: {start_block_num}-{end_block_num}", "INFO")
-            self.schedule_highlighting()
+                self.ide.terminal.log(f"HL: Block count changed to {new_block_count}, scheduling highlight for {start_block_num}-{end_block_num}", "INFO")
+            self._apply_highlighting()  # Immediate highlight
+            self.last_block_count = new_block_count
 
+    def on_contents_change(self):
+        # Mark all visible blocks for rehighlighting
+        start_block_num = self.text_edit.cursorForPosition(self.text_edit.viewport().pos()).blockNumber()
+        end_block_num = self.text_edit.document().findBlock(self.text_edit.cursorForPosition(
+            self.text_edit.viewport().rect().bottomRight()).position()).blockNumber()
+        self.pending_changes.append((start_block_num, end_block_num))
+        if SHOW_HL_INFO:
+            self.ide.terminal.log(f"HL: Text changed, scheduling highlight for {start_block_num}-{end_block_num}", "INFO")
+        self._apply_highlighting()  # Immediate highlight
+            
     def _apply_highlighting(self):
         if SHOW_HL_INFO:
             self.ide.terminal.log("HL: Applying highlighting", "INFO")
+        if self.text_edit.ide.terminal.is_scrolling:
+            self.schedule_highlighting()  # Defer highlighting during scrolling
+            return
         if not hasattr(self.text_edit, "file_path"):
             self.highlight_pending = False
             if SHOW_HL_INFO:
@@ -263,7 +349,7 @@ class SyntaxHighlighter:
         # Use bottomRight to include partially visible bottom line
         last_visible_block = doc.findBlock(self.text_edit.cursorForPosition(
             self.text_edit.viewport().rect().bottomRight()).position())
-        # Extend to next block if partially visible
+        # Extend to next block if slightly visible
         if last_visible_block.isValid():
             next_block = last_visible_block.next()
             if next_block.isValid() and next_block.layout().position().y() < self.text_edit.viewport().rect().bottom():
@@ -281,20 +367,24 @@ class SyntaxHighlighter:
                     # Clear highlighted_blocks for modified blocks
                     if block_num in self.highlighted_blocks:
                         self.highlighted_blocks.remove(block_num)
+                    # Clear cache and highlighted_blocks for modified and subsequent blocks
+                    if block_num in self.block_format_cache:
+                        del self.block_format_cache[block_num]
+                    for cached_key in list(self.block_format_cache.keys()):
+                        if cached_key[0] >= block_num:
+                            del self.block_format_cache[cached_key]
+                            self.highlighted_blocks.discard(cached_key[0])
             if SHOW_HL_INFO:
                 self.ide.terminal.log(f"HL: Added pending blocks {start_block_num}-{end_block_num} to highlight", "INFO")
         self.pending_changes.clear()
-        # Add all visible blocks if none pending
         if not blocks_to_highlight:
             block = first_visible_block
             while block.isValid() and block.blockNumber() <= visible_range[1]:
                 block_num = block.blockNumber()
                 blocks_to_highlight.add(block_num)
-                if block_num in self.highlighted_blocks:
-                    self.highlighted_blocks.remove(block_num)
                 block = block.next()
             if SHOW_HL_INFO:
-                self.ide.terminal.log(f"HL: No pending changes, highlighting all visible blocks {visible_range[0]}-{visible_range[1]}", "INFO")
+                self.ide.terminal.log(f"HL: No pending changes, highlighting new visible blocks {visible_range[0]}-{visible_range[1]}", "INFO")
         if not blocks_to_highlight:
             if SHOW_HL_INFO:
                 self.ide.terminal.log("HL: No blocks to highlight", "INFO")
@@ -307,6 +397,12 @@ class SyntaxHighlighter:
             if block_data:
                 in_block_comment = block_data.get_in_block_comment()
             block = block.next()
+        # Check for single-line comments
+        for block_num in sorted(blocks_to_highlight):
+            block = doc.findBlockByNumber(block_num)
+            if block.isValid() and block.text().lstrip().startswith('//'):
+                blocks_to_highlight.remove(block_num)
+                blocks_to_highlight.add(block_num)  # Re-add to process last
         max_total_ranges = 10000
         was_undo_enabled = doc.isUndoRedoEnabled()
         doc.setUndoRedoEnabled(False)
@@ -314,64 +410,73 @@ class SyntaxHighlighter:
             for block_num in sorted(blocks_to_highlight):
                 block = doc.findBlockByNumber(block_num)
                 if not block.isValid():
-                    if SHOW_HL_INFO:
-                        self.ide.terminal.log(f"HL: Invalid block number {block_num}, skipping", "ERROR")
+                    self.ide.terminal.log(f"HL: Invalid block number {block_num}, skipping", "ERROR")
                     continue
                 text = block.text()
                 if SHOW_HL_INFO:
                     self.ide.terminal.log(f"HL: Highlighting block {block_num}: {text[:50]}...", "INFO")
                 block_length = len(text)
-                format_ranges = []
-                block_number = block.blockNumber()
-                if in_block_comment:
-                    end_match = self.block_comment_end.search(text)
-                    if end_match and end_match.end() <= block_length:
-                        format_ranges.append((0, end_match.end(), self.highlighting_rules[0][1]))
-                        in_block_comment = False
-                    else:
-                        format_ranges.append((0, block_length, self.highlighting_rules[0][1]))
-                else:
-                    start_match = self.block_comment_start.search(text)
-                    if start_match:
-                        start_pos = start_match.start()
-                        end_match = self.block_comment_end.search(text, start_pos)
-                        if end_match and end_match.end() <= block_length:
-                            format_ranges.append((start_pos, end_match.end(), self.highlighting_rules[0][1]))
-                        else:
-                            format_ranges.append((start_pos, block_length, self.highlighting_rules[0][1]))
-                            in_block_comment = True
-                if not in_block_comment:
-                    max_matches = 1000
-                    for pattern, format in self.highlighting_rules[1:]:
-                        match_count = 0
-                        for match in pattern.finditer(text):
-                            if match_count >= max_matches:
-                                if SHOW_HL_INFO:
-                                    self.ide.terminal.log(f"HL: Reached max matches ({max_matches}) for pattern {pattern.pattern}", "WARNING")
-                                break
-                            start, end = match.start(), match.end()
-                            overlaps = False
-                            for r_start, r_end, _ in format_ranges:
-                                if (start >= r_start and start < r_end) or (end > r_start and end <= r_end) or (start <= r_start and end >= r_end):
-                                    overlaps = True
-                                    break
-                            if not overlaps and end <= block_length:
-                                format_ranges.append((start, end, format))
-                            match_count += 1
-                if len(format_ranges) > max_total_ranges:
+                # Apply single-line comment format if applicable
+                if text.lstrip().startswith('//'):
+                    format_ranges = [(0, block_length, self.highlighting_rules[3][1])]  # // comment rule
+                    in_block_comment = False
                     if SHOW_HL_INFO:
-                        self.ide.terminal.log(f"HL: Exceeded max total ranges ({max_total_ranges}) in block {block_number}", "ERROR")
+                        self.ide.terminal.log(f"HL: Applied single-line comment format for block {block_num}", "INFO")
+                else:
+                    # Check cache for unchanged block
+                    text_hash = hash(text)
+                    cache_key = (block_num, text_hash)
+                    if cache_key in self.block_format_cache:
+                        format_ranges, in_block_comment = self.block_format_cache[cache_key]
+                        if SHOW_HL_INFO:
+                            self.ide.terminal.log(f"HL: Using cached ranges for block {block_num}", "INFO")
+                    else:
+                        format_ranges = []
+                        block_number = block.blockNumber()
+                        if in_block_comment:
+                            end_match = self.block_comment_end.search(text)
+                            if end_match and end_match.end() <= block_length:
+                                format_ranges.append((0, end_match.end(), self.highlighting_rules[0][1]))
+                                in_block_comment = False
+                            else:
+                                format_ranges.append((0, block_length, self.highlighting_rules[0][1]))
+                        else:
+                            start_match = self.block_comment_start.search(text)
+                            if start_match:
+                                start_pos = start_match.start()
+                                end_match = self.block_comment_end.search(text, start_pos)
+                                if end_match and end_match.end() <= block_length:
+                                    format_ranges.append((start_pos, end_match.end(), self.highlighting_rules[0][1]))
+                                else:
+                                    format_ranges.append((start_pos, block_length, self.highlighting_rules[0][1]))
+                                    in_block_comment = True
+                        if not in_block_comment:
+                            max_matches = 1000
+                            for pattern, format in self.highlighting_rules[1:]:
+                                match_count = 0
+                                for match in pattern.finditer(text):
+                                    if match_count >= max_matches:
+                                        self.ide.terminal.log(f"HL: Reached max matches ({max_matches}) for pattern {pattern.pattern}", "ERROR")
+                                        break
+                                    start, end = match.start(), match.end()
+                                    if end <= block_length:
+                                        format_ranges.append((start, end, format))
+                                    match_count += 1
+                        # Cache format_ranges and in_block_comment state
+                        self.block_format_cache[cache_key] = (format_ranges, in_block_comment)
+                if len(format_ranges) > max_total_ranges:
+                    self.ide.terminal.log(f"HL: Exceeded max total ranges ({max_total_ranges}) in block {block_number}", "ERROR")
                     continue
                 cursor = QTextCursor(block)
                 cursor.beginEditBlock()
                 try:
                     cursor.setPosition(block.position())
                     cursor.setPosition(block.position() + block_length, QTextCursor.KeepAnchor)
-                    cursor.setCharFormat(QTextCharFormat())
+                    cursor.setCharFormat(QTextCharFormat())  # Clear existing formats
+                    format_ranges.sort(key=lambda x: x[0])  # Sort by start position
                     for start, end, format in format_ranges:
                         if end > block_length:
-                            if SHOW_HL_INFO:
-                                self.ide.terminal.log(f"HL: Skipping invalid range ({start}, {end}) in block {block_number}", "ERROR")
+                            self.ide.terminal.log(f"HL: Skipping invalid range ({start}, {end}) in block {block_number}", "ERROR")
                             continue
                         cursor.setPosition(block.position() + start)
                         cursor.setPosition(block.position() + end, QTextCursor.KeepAnchor)
@@ -387,88 +492,6 @@ class SyntaxHighlighter:
                 self.ide.terminal.log(f"HL: After highlighting - isUndoAvailable: {doc.isUndoAvailable()}, isModified: {doc.isModified()}", "INFO")
             self.highlight_pending = False
         self.last_visible_range = visible_range
-
-    def highlight_all_blocks(self):
-        if SHOW_HL_INFO:
-            self.ide.terminal.log("HL: Highlighting all blocks for printing", "INFO")
-        if not hasattr(self.text_edit, "file_path") or not self.text_edit.file_path.lower().endswith(".gcb"):
-            if SHOW_HL_INFO:
-                self.ide.terminal.log("HL: Not a .gcb file, skipping full highlighting", "INFO")
-            return
-        doc = self.text_edit.document()
-        was_modified = doc.isModified()
-        was_undo_enabled = doc.isUndoRedoEnabled()
-        doc.setUndoRedoEnabled(False)
-        try:
-            block = doc.firstBlock()
-            while block.isValid():
-                block_num = block.blockNumber()
-                text = block.text()
-                block_length = len(text)
-                format_ranges = []
-                in_block_comment = False
-                block_data = block.userData()
-                if block_data:
-                    in_block_comment = block_data.get_in_block_comment()
-                if in_block_comment:
-                    end_match = self.block_comment_end.search(text)
-                    if end_match and end_match.end() <= block_length:
-                        format_ranges.append((0, end_match.end(), self.highlighting_rules[0][1]))
-                        in_block_comment = False
-                    else:
-                        format_ranges.append((0, block_length, self.highlighting_rules[0][1]))
-                else:
-                    start_match = self.block_comment_start.search(text)
-                    if start_match:
-                        start_pos = start_match.start()
-                        end_match = self.block_comment_end.search(text, start_pos)
-                        if end_match and end_match.end() <= block_length:
-                            format_ranges.append((start_pos, end_match.end(), self.highlighting_rules[0][1]))
-                        else:
-                            format_ranges.append((start_pos, block_length, self.highlighting_rules[0][1]))
-                            in_block_comment = True
-                if not in_block_comment:
-                    max_matches = 1000
-                    for pattern, format in self.highlighting_rules[1:]:
-                        match_count = 0
-                        for match in pattern.finditer(text):
-                            if match_count >= max_matches:
-                                if SHOW_HL_INFO:
-                                    self.ide.terminal.log(f"HL: Reached max matches ({max_matches}) for pattern {pattern.pattern}", "WARNING")
-                                break
-                            start, end = match.start(), match.end()
-                            overlaps = False
-                            for r_start, r_end, _ in format_ranges:
-                                if (start >= r_start and start < r_end) or (end > r_start and end <= r_end) or (start <= r_start and end >= r_end):
-                                    overlaps = True
-                                    break
-                            if not overlaps and end <= block_length:
-                                format_ranges.append((start, end, format))
-                            match_count += 1
-                cursor = QTextCursor(block)
-                cursor.beginEditBlock()
-                try:
-                    cursor.setPosition(block.position())
-                    cursor.setPosition(block.position() + block_length, QTextCursor.KeepAnchor)
-                    cursor.setCharFormat(QTextCharFormat())
-                    for start, end, format in format_ranges:
-                        if end > block_length:
-                            if SHOW_HL_INFO:
-                                self.ide.terminal.log(f"HL: Skipping invalid range ({start}, {end}) in block {block_num}", "ERROR")
-                            continue
-                        cursor.setPosition(block.position() + start)
-                        cursor.setPosition(block.position() + end, QTextCursor.KeepAnchor)
-                        cursor.mergeCharFormat(format)
-                finally:
-                    cursor.endEditBlock()
-                block.setUserData(TextBlockData(block.text(), in_block_comment))
-                block = block.next()
-        finally:
-            doc.setUndoRedoEnabled(was_undo_enabled)
-            doc.setModified(was_modified)
-            if SHOW_HL_INFO:
-                self.ide.terminal.log("HL: Completed highlighting all blocks", "INFO")
-
 
 class CustomTextEdit(QTextEdit):
     def __init__(self, ide):
@@ -613,6 +636,7 @@ class TerminalWindow(QListWidget):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
         self.itemClicked.connect(self.handle_item_clicked)
+        self.is_scrolling = False
         self.user_scrolled = False
         self.verticalScrollBar().valueChanged.connect(self.on_scroll)
 
@@ -620,8 +644,10 @@ class TerminalWindow(QListWidget):
         max_value = self.verticalScrollBar().maximum()
         if value < max_value:
             self.user_scrolled = True
+            self.is_scrolling = True
         else:
             self.user_scrolled = False
+            self.is_scrolling = False
 
     def log(self, message, level="INFO"):
         if (level == "INFO" and self.parent().parent().settings["show_info"]) or \
@@ -2022,16 +2048,30 @@ class IDE(QMainWindow):
                 if not tab.document().isModified():
                     saved_count += 1
 
-    def print_file(self):
-        current_tab = self.tabs.currentWidget()
-        if not current_tab:
-            self.terminal.log("No file open to print", "ERROR")
-            return
-        printer = QPrinter()
-        print_dialog = QPrintDialog(printer, self)
-        if print_dialog.exec_() == QPrintDialog.Accepted:
-            current_tab.document().print_(printer)
-    
+    def format_document_with_line_numbers(self, text_edit):
+        """Create a new QTextDocument with line numbers prepended to all blocks, including empty ones."""
+        doc = text_edit.document()
+        block_count = doc.blockCount()  # Count all blocks
+        max_digits = len(str(block_count)) if block_count > 0 else 1
+        new_doc = QTextDocument()
+        cursor = QTextCursor(new_doc)
+        line_number = 1
+        block = doc.firstBlock()
+        while block.isValid():
+            line_number_str = f"{line_number:>{max_digits}} "
+            cursor.insertText(line_number_str, QTextCharFormat())  # Plain format for line numbers
+            # Copy block text and formatting (empty blocks will have no text)
+            block_cursor = QTextCursor(block)
+            block_cursor.movePosition(QTextCursor.StartOfBlock)
+            block_cursor.movePosition(QTextCursor.EndOfBlock, QTextCursor.KeepAnchor)
+            if block_cursor.hasSelection():
+                cursor.insertFragment(block_cursor.selection())
+            if block.next().isValid():  # Add block separator only if not the last block
+                cursor.insertBlock()
+            line_number += 1
+            block = block.next()
+        return new_doc
+
     def print_file(self):
         text_edit = self.tabs.currentWidget()
         if not isinstance(text_edit, CustomTextEdit):
@@ -2039,12 +2079,18 @@ class IDE(QMainWindow):
             return
         printer = QPrinter(QPrinter.HighResolution)
         dialog = QPrintDialog(printer, self)
-        if dialog.exec_() != QPrintDialog.Accepted:
+        if dialog.exec_() != QDialog.Accepted:
             return
         # Highlight entire .GCB file
         if hasattr(text_edit, "file_path") and text_edit.file_path.lower().endswith(".gcb"):
             text_edit.highlighter.highlight_all_blocks()
-        doc = text_edit.document().clone()
+        # Create document with line numbers
+        doc = self.format_document_with_line_numbers(text_edit)
+        # Reapply highlighting to new document for .gcb files
+        if hasattr(text_edit, "file_path") and text_edit.file_path.lower().endswith(".gcb"):
+            temp_text_edit = CustomTextEdit(self)
+            temp_text_edit.setDocument(doc)
+            temp_text_edit.highlighter.highlight_all_blocks()
         doc.print_(printer)
         self.terminal.log(f"Printed file: {text_edit.file_path if hasattr(text_edit, 'file_path') else 'untitled'}", "INFO")
 
