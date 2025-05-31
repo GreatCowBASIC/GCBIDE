@@ -24,7 +24,7 @@ from collections import deque
 import uuid
 
 #build number
-BUILD_NUMBER = "05.31.2025"
+BUILD_NUMBER = "06.01.2025"
 
 SHOW_HL_INFO = False  # Disabled to reduce clutter
 SHOW_FONT_CONTROL = False
@@ -228,12 +228,10 @@ class SyntaxHighlighter:
                     if SHOW_HL_INFO:
                         self.ide.terminal.log(f"HL: Copied language file from {fallback_path} to {language_file}", "INFO")
                 except Exception as e:
-                    if SHOW_HL_INFO:
-                        self.ide.terminal.log(f"HL: Error copying language file to {language_file}: {str(e)}", "ERROR")
+                    self.ide.terminal.log(f"HL: Error copying language file to {language_file}: {str(e)}", "ERROR")
                     return
             else:
-                if SHOW_HL_INFO:
-                    self.ide.terminal.log(f"HL: Language file not found at {language_file} or {fallback_path}", "ERROR")
+                self.ide.terminal.log(f"HL: Language file not found at {language_file} or {fallback_path}", "ERROR")
                 return
 
         if os.path.exists(language_file):
@@ -250,8 +248,7 @@ class SyntaxHighlighter:
                         if SHOW_HL_INFO:
                             self.ide.terminal.log(f"HL: Loaded block comment start: {block_start}", "INFO")
                     except re.error as e:
-                        if SHOW_HL_INFO:
-                            self.ide.terminal.log(f"HL: Invalid block comment start pattern '{block_start}': {str(e)}", "ERROR")
+                        self.ide.terminal.log(f"HL: Invalid block comment start pattern '{block_start}': {str(e)}", "ERROR")
                         self.block_comment_start = None
 
                     try:
@@ -260,8 +257,7 @@ class SyntaxHighlighter:
                         if SHOW_HL_INFO:
                             self.ide.terminal.log(f"HL: Loaded block comment end: {block_end}", "INFO")
                     except re.error as e:
-                        if SHOW_HL_INFO:
-                            self.ide.terminal.log(f"HL: Invalid block comment end pattern '{block_end}': {str(e)}", "ERROR")
+                        self.ide.terminal.log(f"HL: Invalid block comment end pattern '{block_end}': {str(e)}", "ERROR")
                         self.block_comment_end = None
 
                     for rule in config.get("patterns", []):
@@ -287,14 +283,11 @@ class SyntaxHighlighter:
                         except Exception as e:
                                 self.ide.terminal.log(f"HL: Error processing rule {rule.get('match', 'unknown')}: {str(e)}", "ERROR")
             except json.JSONDecodeError as e:
-                if SHOW_HL_INFO:
-                    self.ide.terminal.log(f"HL: Corrupted JSON in {language_file}: {str(e)}", "ERROR")
+                self.ide.terminal.log(f"HL: Corrupted JSON in {language_file}: {str(e)}", "ERROR")
             except Exception as e:
-                if SHOW_HL_INFO:
-                    self.ide.terminal.log(f"HL: Error loading {language_file}: {str(e)}", "ERROR")
+                self.ide.terminal.log(f"HL: Error loading {language_file}: {str(e)}", "ERROR")
         else:
-            if SHOW_HL_INFO:
-                self.ide.terminal.log(f"HL: Language file not found at {language_file} after copy attempt", "ERROR")
+      	    self.ide.terminal.log(f"HL: Language file not found at {language_file} after copy attempt", "ERROR")
 
     def schedule_highlighting(self):
         if SHOW_HL_INFO:
