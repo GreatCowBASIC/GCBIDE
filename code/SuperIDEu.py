@@ -1,3 +1,101 @@
+'''
+    ### Description of the GCBASIC Essential IDE with PyQt5 Syntax Highlighter
+
+    The GCBASIC Integrated Development Environment (IDE) is a software application designed to facilitate the development, editing, and compilation of GCBASIC code, a programming language tailored for microcontroller programming, particularly for PIC and AVR microcontrollers. The IDE leverages the PyQt5 framework, a Python binding for the Qt cross-platform application framework, to provide a graphical user interface (GUI) that is both user-friendly and feature-rich. A key component of the IDE is its custom syntax highlighter, implemented using a JSON-based TextMate grammar file (`GCB.tmLanguage.json`), which ensures accurate and visually distinct highlighting of GCBASIC code. Below is a comprehensive description of the IDE, covering its purpose, components, features, and technical details, with a focus on the syntax highlighter based on the provided project context.
+
+    #### Purpose and Scope
+    
+    The GCBASIC Essential IDE aims to streamline the development process for GCBASIC programmers by providing an integrated environment for writing, debugging, and compiling code. 
+    It targets hobbyists, educators, and engineers working with microcontrollers, offering tools to simplify coding tasks and enhance productivity. 
+    The IDE is designed to be lightweight, cross-platform (Windows, Linux, macOS), and extensible, with a focus on precise syntax highlighting to improve code readability and reduce errors.
+
+    #### Core Components
+    
+    The IDE consists of several interconnected components, each serving a specific function:
+
+    1. **Code Editor**:
+    - A central text editing area powered by PyQt5's `QTextEdit` or a custom widget, where users write GCBASIC code.
+    - Supports standard editing features like cut, copy, paste, undo/redo, and find/replace.
+    - Integrates the custom syntax highlighter to colorize GCBASIC syntax elements.
+
+    2. **Syntax Highlighter**:
+    - Implemented using `QSyntaxHighlighter` and driven by the `GCB.tmLanguage.json` TextMate grammar file.
+    - Highlights GCBASIC syntax elements, including:
+        - **Preprocessor Directives**: `#include`, `#chip`, `#option`, `#define` (#0000BB, bold).
+        - **Comments**: Block (`/* */`) and line (`//`, `REM`, `;`, `'`) (#008000, italic).
+        - **Strings**: Double-quoted (`"..."`) (#A4D65A, bold).
+        - **Operators**: `=`, `+`, `-`, `<`, `>`, `<>`, `>=`, `<=`, `and`, `or` (#FF0000, bold).
+        - **Ports**: `PORTA.0` to `PORTH.7`, `LATA.0` to `LATH.7` (#4EC9B0, bold).
+        - **Functions**: `GLCDRotate`, `LANDSCAPE_REV`, etc. (#569CD6, italic).
+        - **Keywords**: `dim`, `if`, `then`, `sub`, etc. (#569CD6, bold for control keywords).
+        - **Numbers**: Integers (#FF0000, no bold).
+        - **Units**: `ms`, `us`, `s`, `10ms`, `10us` (#0000FF, no bold).
+    - Handles complex cases like `<` and `>` in `#include <file.h>` (currently blue for `<`, red for `>`, aiming for consistent blue).
+
+    3. **File Management**:
+    - Supports opening, saving, and managing `.gcb` (GCBASIC source) files.
+    - Likely includes a file explorer or project tree view for organizing multiple files.
+    - Allows importing header files (`.h`) and other resources.
+
+    4. **Compiler Integration**:
+    - Interfaces with the GCBASIC compiler to compile code into microcontroller-compatible machine code (e.g., HEX files).
+    - Provides a "Build" or "Compile" button to trigger compilation.
+    - Displays compiler output, errors, and warnings in a dedicated console or output panel.
+
+    5. **Microcontroller Programming**:
+    - Supports uploading compiled code to microcontrollers via programmers (e.g., PICkit, AVRISP).
+    - May include configuration options for selecting microcontroller models and programmer hardware.
+
+    6. **GUI Elements**:
+    - **Toolbar**: Buttons for common actions (New, Open, Save, Compile, Upload).
+    - **Menu Bar**: File, Edit, View, Build, Tools, and Help menus.
+    - **Status Bar**: Displays line/column numbers, file status, or compiler messages.
+    - **Dockable Panels**: For project explorer, console output, or debugger.
+
+    7. **Settings/Preferences**:
+    - Allows customization of editor settings (font, tab size, theme).
+    - May include options to adjust syntax highlighter colors or styles.
+    - Configures compiler and programmer settings.
+
+    #### Key Features
+    - **Cross-Platform**: Runs on Windows, Linux, and macOS, leveraging PyQt5’s portability.
+    - **Syntax Highlighting**: Precise, color-coded highlighting for GCBASIC syntax, enhancing code readability.
+    - **Error Detection**: Highlights syntax errors or invalid constructs via compiler feedback.
+    - **Code Completion**: Likely includes basic auto-completion for GCBASIC keywords, functions, and ports (if implemented).
+    - **Project Management**: Organizes multiple files and resources within a project structure.
+    - **Extensibility**: JSON-based grammar allows easy updates to highlighting rules.
+    - **Lightweight**: Optimized for low resource usage, suitable for hobbyist systems.
+
+    #### Technical Details
+    - **Framework**: Built with PyQt5, using `QMainWindow` for the main interface, `QTextEdit` for the editor, and `QSyntaxHighlighter` for highlighting.
+    - **Grammar File**: `GCB.tmLanguage.json` defines TextMate-compatible patterns, parsed by `QRegularExpression` for real-time highlighting.
+    - **Tokenization**: Processes code into tokens (e.g., keywords, operators) for highlighting, with challenges in handling `<` and `>` in `#include`.
+    - **Dependencies**: Requires Python 3.x, PyQt5, and the GCBASIC compiler.
+    - **File Format**: Edits `.gcb` files, compiles to `.hex` or `.asm`, and supports `.h` includes.
+
+    #### Current Development Focus
+    The project is actively addressing syntax highlighter issues, particularly:
+    - Ensuring `<` and `>` in `#include <file.h>` are both dark blue (`#0000BB`, bold) to match `meta.preprocessor.gcb`, not red (`#FF0000`, bold) or mixed (blue `<`, red `>`).
+    - Correcting `<>` in expressions (e.g., `x<>y`) to be red (`#FF0000`, bold) as a single inequality operator.
+    - Fixing `<` and `>` in `x < > y` to both be red (`#FF0000`, bold) as separate operators.
+    - Recent updates have resolved issues with `#chip`, `#option`, comments, `PORTG.2`, and `LANDSCAPE_REV`.
+
+    #### Challenges
+    - **Tokenization**: `QSyntaxHighlighter` splits `<file.h>` into `<`, `file.h`, `>`, causing precedence issues.
+    - **Regex Limitations**: `QRegularExpression` requires fixed-width lookbehinds, complicating exclusions for `#include`.
+    - **Precedence**: Ensuring `meta.preprocessor.gcb` overrides operator patterns for `#include`.
+
+    #### Future Enhancements
+    - Advanced code completion and intellisense for GCBASIC.
+    - Integrated debugger for microcontroller code.
+    - Theme support for customizable highlighter colors.
+    - Improved error reporting with inline annotations.
+    - Support for additional microcontroller platforms.
+
+    This IDE provides a robust environment for GCBASIC development, with ongoing efforts to perfect its syntax highlighting for a seamless user experience.
+
+'''
+
 import sys
 import os
 import os.path
@@ -12,13 +110,15 @@ import time
 import webbrowser
 import glob
 import shutil
+
+
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
                              QMenuBar, QAction, QFileDialog, QDockWidget, QListWidget, QMessageBox,
                              QInputDialog, QMenu, QFrame, QDialog, QDialogButtonBox, QTextBrowser, QComboBox,
                              QPushButton, QHBoxLayout, QLabel, QFontDialog)
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
-from PyQt5.QtGui import QTextOption, QTextDocument, QFont, QPainter, QFontMetrics, QTextCursor, QIcon, QTextCharFormat, QColor, QImage
-from PyQt5.QtCore import Qt, QUrl, QPoint, QTimer, QRect, QByteArray, QSize, QEvent
+from PyQt5.QtGui import QTextOption, QTextDocument, QFont, QPainter, QFontMetrics, QTextCursor, QIcon, QTextCharFormat, QColor, QImage, QPen
+from PyQt5.QtCore import Qt, QUrl, QPoint, QTimer, QRect, QByteArray, QSize, QEvent, QObject
 from PyQt5.QtGui import QDesktopServices, QTextBlockUserData, QFontDatabase
 from collections import deque
 import uuid
@@ -26,16 +126,15 @@ import uuid
 #build number
 BUILD_NUMBER = "06.01.2025"
 
-SHOW_HL_INFO = False  # Disabled to reduce clutter
-SHOW_FONT_CONTROL = False
-SHOW_BAR_CONTROL = False  # Disabled to reduce clutter
-SHOW_FILE_INFO = False
-SHOW_TASK_INFO = False
-SHOW_TERMINAL_INFO = False
-SHOW_RULES_INFO = False
-
-
-HIGHLIGHT_TIMER_INTERVAL = 100   #was 500 ms
+#Controlled in the JSON setting file.  These initialise only.
+show_hl_info = False  
+show_font_control = False
+show_bar_control = False  
+show_file_info = False
+show_task_info = False
+show_terminal_info = False
+show_rules_info = False
+highlight_timer_interval = 100 
 
 # Helper function to get the base path for resources
 def resource_path(relative_path):
@@ -60,7 +159,7 @@ class LineNumberArea(QFrame):
         if self.marked_line != -1:
             self.clear_marker()
         self.marked_line = line_number
-        self.original_number = str(line_number + 1)
+        self.original_number = str(line_number + 1) 
         self.timer.start(self.editor.ide.settings["goto_marker_duration"] * 1000)
         self.update()
 
@@ -77,7 +176,7 @@ class LineNumberArea(QFrame):
         cursor = self.editor.cursorForPosition(self.editor.viewport().pos())
         first_visible_block = doc.findBlock(cursor.position())
         block_number = first_visible_block.blockNumber()
-        font = QFont(self.editor.ide.settings["editor_font"], self.editor.ide.settings["editor_font_size"])
+        font = QFont(self.editor.ide.settings.get("editor_font", "Consolas"), self.editor.ide.settings["editor_font_size"])
         painter.setFont(font)
         fm = QFontMetrics(font)
         ascent = fm.ascent()
@@ -116,7 +215,7 @@ class SyntaxHighlighter:
     def __init__(self, text_edit, ide):
         self.text_edit = text_edit
         self.ide = ide
-        self.block_format_cache = {}  # Cache for format_ranges and comment state
+        self.block_format_cache = {}
         self.highlighting_rules = []
         self.block_comment_start = None
         self.block_comment_end = None
@@ -124,7 +223,7 @@ class SyntaxHighlighter:
         self.highlight_timer = QTimer()
         self.highlight_timer.setSingleShot(True)
         self.highlight_timer.timeout.connect(self._apply_highlighting)
-        self.highlight_timer.setInterval(HIGHLIGHT_TIMER_INTERVAL)
+        self.highlight_timer.setInterval(self.ide.settings.get('highlight_timer_interval', 100))
         self.highlight_pending = False
         self.last_visible_range = None
         self.highlighted_blocks = set()
@@ -134,7 +233,7 @@ class SyntaxHighlighter:
         self.pending_changes = []
 
     def highlight_all_blocks(self):
-        if SHOW_HL_INFO:
+        if show_hl_info:
             self.ide.terminal.log("HL: Highlighting all blocks for printing", "INFO")
         if not hasattr(self.text_edit, "file_path") or not self.text_edit.file_path.lower().endswith(".gcb"):
             return
@@ -205,7 +304,7 @@ class SyntaxHighlighter:
         finally:
             doc.setUndoRedoEnabled(was_undo_enabled)
             doc.setModified(was_modified)
-        if SHOW_HL_INFO:
+        if show_hl_info:
             self.ide.terminal.log("HL: Completed highlighting all blocks", "INFO")
 
     def load_highlighting_rules(self):
@@ -225,7 +324,7 @@ class SyntaxHighlighter:
                     shutil.copy(fallback_path, language_file)
                     self.ide.settings["language_file"] = language_file
                     self.ide.save_settings()
-                    if SHOW_HL_INFO:
+                    if show_hl_info:
                         self.ide.terminal.log(f"HL: Copied language file from {fallback_path} to {language_file}", "INFO")
                 except Exception as e:
                     self.ide.terminal.log(f"HL: Error copying language file to {language_file}: {str(e)}", "ERROR")
@@ -239,13 +338,13 @@ class SyntaxHighlighter:
                 with open(language_file, "r", encoding="utf-8") as f:
                     config = json.load(f)
                     self.highlighting_rules = []
-                    if SHOW_RULES_INFO:
+                    if show_rules_info:
                         self.ide.terminal.log(f"HL: Loaded language file from {language_file}", "INFO")
 
                     try:
                         block_start = config.get("block_comment_start", r'/\*')
                         self.block_comment_start = re.compile(block_start)
-                        if SHOW_HL_INFO:
+                        if show_hl_info:
                             self.ide.terminal.log(f"HL: Loaded block comment start: {block_start}", "INFO")
                     except re.error as e:
                         self.ide.terminal.log(f"HL: Invalid block comment start pattern '{block_start}': {str(e)}", "ERROR")
@@ -254,7 +353,7 @@ class SyntaxHighlighter:
                     try:
                         block_end = config.get("block_comment_end", r'\*/')
                         self.block_comment_end = re.compile(block_end)
-                        if SHOW_HL_INFO:
+                        if show_hl_info:
                             self.ide.terminal.log(f"HL: Loaded block comment end: {block_end}", "INFO")
                     except re.error as e:
                         self.ide.terminal.log(f"HL: Invalid block comment end pattern '{block_end}': {str(e)}", "ERROR")
@@ -276,7 +375,7 @@ class SyntaxHighlighter:
                             flags = re.IGNORECASE if case_insensitive else 0
                             compiled_pattern = re.compile(pattern, flags)
                             self.highlighting_rules.append((compiled_pattern, format))
-                            if SHOW_RULES_INFO:
+                            if show_rules_info:
                                 self.ide.terminal.log(f"HL: Loaded rule - Pattern: {pattern}, Color: {rule['color']}, Case Insensitive: {case_insensitive}", "INFO")
                         except re.error as e:
                                 self.ide.terminal.log(f"HL: Invalid regex pattern '{rule.get('match', 'unknown')}' in JSON: {str(e)}", "ERROR")
@@ -290,7 +389,7 @@ class SyntaxHighlighter:
       	    self.ide.terminal.log(f"HL: Language file not found at {language_file} after copy attempt", "ERROR")
 
     def schedule_highlighting(self):
-        if SHOW_HL_INFO:
+        if show_hl_info:
             self.ide.terminal.log("HL: Scheduling highlighting", "INFO")
         if self.highlight_pending:
             self.highlight_timer.stop()  # Reset timer
@@ -303,7 +402,7 @@ class SyntaxHighlighter:
             start_block_num = 0  # Rehighlight all blocks
             end_block_num = new_block_count - 1
             self.pending_changes.append((start_block_num, end_block_num))
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.ide.terminal.log(f"HL: Block count changed to {new_block_count}, scheduling highlight for {start_block_num}-{end_block_num}", "INFO")
             self._apply_highlighting()  # Immediate highlight
             self.last_block_count = new_block_count
@@ -314,25 +413,25 @@ class SyntaxHighlighter:
         end_block_num = self.text_edit.document().findBlock(self.text_edit.cursorForPosition(
             self.text_edit.viewport().rect().bottomRight()).position()).blockNumber()
         self.pending_changes.append((start_block_num, end_block_num))
-        if SHOW_HL_INFO:
+        if show_hl_info:
             self.ide.terminal.log(f"HL: Text changed, scheduling highlight for {start_block_num}-{end_block_num}", "INFO")
         self._apply_highlighting()  # Immediate highlight
             
     def _apply_highlighting(self):
-        if SHOW_HL_INFO:
+        if show_hl_info:
             self.ide.terminal.log("HL: Applying highlighting", "INFO")
         if self.text_edit.ide.terminal.is_scrolling:
             self.schedule_highlighting()  # Defer highlighting during scrolling
             return
         if not hasattr(self.text_edit, "file_path"):
             self.highlight_pending = False
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.ide.terminal.log("HL: No file_path, skipping highlighting", "INFO")
             return
         # Allow highlighting for .gcb files, including unsaved
         if not self.text_edit.file_path.lower().endswith(".gcb"):
             self.highlight_pending = False
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.ide.terminal.log(f"HL: File {self.text_edit.file_path} is not .gcb, skipping highlighting", "INFO")
             return
         doc = self.text_edit.document()
@@ -348,7 +447,7 @@ class SyntaxHighlighter:
             if next_block.isValid() and next_block.layout().position().y() < self.text_edit.viewport().rect().bottom():
                 last_visible_block = next_block
         visible_range = (first_visible_block.blockNumber(), last_visible_block.blockNumber() if last_visible_block.isValid() else doc.blockCount() - 1)
-        if SHOW_HL_INFO:
+        if show_hl_info:
             self.ide.terminal.log(f"HL: Visible range: {visible_range[0]}-{visible_range[1]}", "INFO")
         blocks_to_highlight = set()
         # Add pending changes
@@ -367,7 +466,7 @@ class SyntaxHighlighter:
                         if cached_key[0] >= block_num:
                             del self.block_format_cache[cached_key]
                             self.highlighted_blocks.discard(cached_key[0])
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.ide.terminal.log(f"HL: Added pending blocks {start_block_num}-{end_block_num} to highlight", "INFO")
         self.pending_changes.clear()
         if not blocks_to_highlight:
@@ -376,10 +475,10 @@ class SyntaxHighlighter:
                 block_num = block.blockNumber()
                 blocks_to_highlight.add(block_num)
                 block = block.next()
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.ide.terminal.log(f"HL: No pending changes, highlighting new visible blocks {visible_range[0]}-{visible_range[1]}", "INFO")
         if not blocks_to_highlight:
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.ide.terminal.log("HL: No blocks to highlight", "INFO")
             self.highlight_pending = False
             return
@@ -406,14 +505,14 @@ class SyntaxHighlighter:
                     self.ide.terminal.log(f"HL: Invalid block number {block_num}, skipping", "ERROR")
                     continue
                 text = block.text()
-                if SHOW_HL_INFO:
+                if show_hl_info:
                     self.ide.terminal.log(f"HL: Highlighting block {block_num}: {text[:50]}...", "INFO")
                 block_length = len(text)
                 # Apply single-line comment format if applicable
                 if text.lstrip().startswith('//'):
                     format_ranges = [(0, block_length, self.highlighting_rules[3][1])]  # // comment rule
                     in_block_comment = False
-                    if SHOW_HL_INFO:
+                    if show_hl_info:
                         self.ide.terminal.log(f"HL: Applied single-line comment format for block {block_num}", "INFO")
                 else:
                     # Check cache for unchanged block
@@ -421,7 +520,7 @@ class SyntaxHighlighter:
                     cache_key = (block_num, text_hash)
                     if cache_key in self.block_format_cache:
                         format_ranges, in_block_comment = self.block_format_cache[cache_key]
-                        if SHOW_HL_INFO:
+                        if show_hl_info:
                             self.ide.terminal.log(f"HL: Using cached ranges for block {block_num}", "INFO")
                     else:
                         format_ranges = []
@@ -481,7 +580,7 @@ class SyntaxHighlighter:
         finally:
             doc.setUndoRedoEnabled(was_undo_enabled)
             doc.setModified(was_modified)
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.ide.terminal.log(f"HL: After highlighting - isUndoAvailable: {doc.isUndoAvailable()}, isModified: {doc.isModified()}", "INFO")
             self.highlight_pending = False
         self.last_visible_range = visible_range
@@ -491,7 +590,7 @@ class CustomTextEdit(QTextEdit):
         super().__init__()
         self.ide = ide
         self.setUndoRedoEnabled(True)
-        if SHOW_HL_INFO:
+        if show_hl_info:
             self.ide.terminal.log(f"HL: CustomTextEdit initialized - undoRedoEnabled: {self.isUndoRedoEnabled()}, document undoRedoEnabled: {self.document().isUndoRedoEnabled()}", "INFO")
         self.line_number_area = LineNumberArea(self)
         self.highlighter = SyntaxHighlighter(self, ide)
@@ -539,12 +638,12 @@ class CustomTextEdit(QTextEdit):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F4:
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.ide.terminal.log("HL: F4 intercepted in CustomTextEdit, triggering open_tasks_action", "INFO")
             self.ide.open_tasks_action.trigger()
             return
         if event.key() == Qt.Key_Z and event.modifiers() == Qt.ControlModifier:
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.ide.terminal.log("HL: Ctrl+Z intercepted in CustomTextEdit, forwarding to IDE.undo", "INFO")
             self.ide.undo()
             return
@@ -554,7 +653,7 @@ class CustomTextEdit(QTextEdit):
         elif event.key() == Qt.Key_Backtab:
             self.ide.dedent()
             return
-        if SHOW_HL_INFO:
+        if show_hl_info:
             self.ide.terminal.log(f"HL: Key pressed - key: {event.key()}, text: '{event.text()}', undoAvailable: {self.document().isUndoAvailable()}", "INFO")
         super().keyPressEvent(event)
         if event.text() or event.key() in (Qt.Key_Backspace, Qt.Key_Delete):
@@ -565,15 +664,15 @@ class CustomTextEdit(QTextEdit):
         if not self._is_highlighting:
             self._is_highlighting = True
             try:
-                if SHOW_HL_INFO:
-                    self.ide.terminal.log(f"HL: Text changed - isUndoAvailable: {self.document().isUndoAvailable()}, isModified: {self.document().isModified()}, file_path: {getattr(self, 'file_path', 'None')}", "INFO")
-                # Force immediate highlighting for .gcb files
+                if self.ide.settings.get('show_hl_info', False):
+                    #self.ide.terminal.log(f"HL: Text changed - isUndoAvailable: {self.document().isUndoAvailable()}, isModified: {self.document().isModified()}, file_path: {getattr(self, 'file_path', 'None')}", "INFO")
+                    self.ide.terminal.log(f"HL: Text changed - isUndoAvailable: {self.document().isUndoAvailable()}, isModified: {self.document().isModified()}, file_path: {os.path.basename(getattr(self, 'file_path', 'None'))}", "INFO")
                 if hasattr(self, "file_path") and self.file_path.lower().endswith(".gcb"):
                     self.highlighter._apply_highlighting()
                 else:
                     self.highlighter.schedule_highlighting()
             except Exception as e:
-                if SHOW_HL_INFO:
+                if self.ide.settings.get('show_hl_info', False):
                     self.ide.terminal.log(f"HL: Error in highlighting: {str(e)}", "ERROR")
             finally:
                 self._is_highlighting = False
@@ -643,13 +742,12 @@ class TerminalWindow(QListWidget):
             self.is_scrolling = False
 
     def log(self, message, level="INFO"):
-        if (level == "INFO" and self.parent().parent().settings["show_info"]) or \
-           (level == "ERROR" and self.parent().parent().settings["show_errors"]):
+        if (level == "INFO" and self.parent().parent().settings.get('show_info', True)) or \
+           (level == "ERROR" and self.parent().parent().settings.get('show_errors', True)):
             self.addItem(f"[{level}] {message}")
             if not self.user_scrolled or self.verticalScrollBar().value() == self.verticalScrollBar().maximum():
                 self.scrollToBottom()
                 self.user_scrolled = False
-
     def lognewline(self):
         self.addItem(f"")
         if not self.user_scrolled or self.verticalScrollBar().value() == self.verticalScrollBar().maximum():
@@ -724,7 +822,7 @@ class FloatingButtonBar(QWidget):
         self.settings = self.ide.settings
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setAttribute(Qt.WA_QuitOnClose, False)  # Prevent bar from closing app
+        self.setAttribute(Qt.WA_QuitOnClose, False)
         self.drag_start_position = None
         self.is_dragging = False
         self.setMouseTracking(True)
@@ -732,8 +830,7 @@ class FloatingButtonBar(QWidget):
         self.hold_timer = QTimer(self)
         self.hold_timer.setSingleShot(True)
         self.hold_timer.timeout.connect(self.start_drag)
-        self.hold_threshold = 200  # ms to differentiate click vs. hold
-        # Subtle background for visibility
+        self.hold_threshold = 200
         self.setStyleSheet("background-color: rgba(200, 200, 200, 50);")
         layout = QHBoxLayout()
         layout.setContentsMargins(6, 6, 6, 6)
@@ -744,93 +841,87 @@ class FloatingButtonBar(QWidget):
         self.tasks = self.ide.parse_tasks_json(tasks_file) if tasks_file else []
         valid_keys = {f"f{i}" for i in range(1, 13)} | {f"shift+f{i}" for i in range(1, 13)}
         task_shortcuts = {task.get("shortcut", "").lower(): task for task in self.tasks if task.get("shortcut")}
-        if SHOW_BAR_CONTROL:
+        if self.settings.get('show_bar_control', False):
             self.ide.terminal.log(f"BC: Available task shortcuts: {list(task_shortcuts.keys())}", "INFO")
-
-        # Determine icon directory based on button size
         config_dir = os.path.expanduser("~/.superide")
         user_icon_base_dir = os.path.join(config_dir, "gcb-icons")
         icon_size_dir = f"{button_size}_{button_size}_icons"
         user_icon_dir = os.path.join(user_icon_base_dir, icon_size_dir)
-        
-        # Check if user icon directory exists; if not, copy from application folder
         if not os.path.exists(user_icon_base_dir):
             app_icon_base_dir = resource_path("gcb-icons")
             if os.path.exists(app_icon_base_dir):
                 try:
                     shutil.copytree(app_icon_base_dir, user_icon_base_dir)
-                    if SHOW_BAR_CONTROL:
+                    if self.settings.get('show_bar_control', False):
                         self.ide.terminal.log(f"BC: Copied icons from {app_icon_base_dir} to {user_icon_base_dir}", "INFO")
                 except Exception as e:
-                    if SHOW_BAR_CONTROL:
+                    if self.settings.get('show_bar_control', False):
                         self.ide.terminal.log(f"BC: Error copying icons to {user_icon_base_dir}: {str(e)}", "ERROR")
             else:
-                if SHOW_BAR_CONTROL:
+                if self.settings.get('show_bar_control', False):
                     self.ide.terminal.log(f"BC: Application icon directory not found at {app_icon_base_dir}", "ERROR")
-
         for i in range(1, 5):
             config = self.settings["button_bar"].get(f"button{i}", "").strip()
-            if SHOW_BAR_CONTROL:
+            if self.settings.get('show_bar_control', False):
                 self.ide.terminal.log(f"BC: Processing button{i} config: {config}", "INFO")
             if not config:
-                if SHOW_BAR_CONTROL:
+                if self.settings.get('show_bar_control', False):
                     self.ide.terminal.log(f"BC: Button{i} is empty, skipping", "INFO")
                 continue
             match = re.match(r'^\[(.*?)\]:(.*)$', config, re.IGNORECASE)
             if not match:
-                if SHOW_BAR_CONTROL:
+                if self.settings.get('show_bar_control', False):
                     self.ide.terminal.log(f"BC: Invalid button{i} config format: {config}", "ERROR")
                 continue
             func_key, icon_filename = match.groups()
             func_key = func_key.replace(" ", "").lower()
             if func_key.startswith("shift") and "f" in func_key:
                 func_key = re.sub(r'shift\+?f', 'shift+f', func_key, flags=re.IGNORECASE)
-            if SHOW_BAR_CONTROL:
+            if self.settings.get('show_bar_control', False):
                 self.ide.terminal.log(f"BC: Button{i} normalized func_key: {func_key}", "INFO")
             if func_key not in valid_keys:
-                if SHOW_BAR_CONTROL:
+                if self.settings.get('show_bar_control', False):
                     self.ide.terminal.log(f"BC: Invalid function key for button{i}: {func_key}", "ERROR")
                 continue
             task = task_shortcuts.get(func_key)
             if not task:
-                if SHOW_BAR_CONTROL:
+                if self.settings.get('show_bar_control', False):
                     self.ide.terminal.log(f"BC: No task found for function key {func_key} in button{i}", "ERROR")
                 continue
             button = QPushButton()
             button.setFixedSize(button_size, button_size)
-            # Construct icon path using user directory and size-based folder
             icon_path = os.path.join(user_icon_dir, icon_filename.strip())
             if os.path.exists(icon_path):
                 icon = QIcon(icon_path)
                 button.setIcon(icon)
                 button.setIconSize(QSize(button_size - 4, button_size - 4))
-                if SHOW_BAR_CONTROL:
+                if self.settings.get('show_bar_control', False):
                     self.ide.terminal.log(f"BC: Loaded icon for button{i}: {icon_path}", "INFO")
             else:
                 button.setText(str(i))
                 button.setFont(QFont("Arial", button_size // 2))
-                if SHOW_BAR_CONTROL:
+                if self.settings.get('show_bar_control', False):
                     self.ide.terminal.log(f"BC: Icon not found for button{i}: {icon_path}, using fallback text '{i}'", "ERROR")
             button.clicked.connect(lambda checked, t=task: self.run_task_with_focus(t))
             button.setFocusPolicy(Qt.NoFocus)
-            button.installEventFilter(self)  # Install event filter on button
+            button.installEventFilter(self)
             button.setStyleSheet(
                 f"QPushButton {{ background-color: {'#F5F5F5' if self.settings['theme'] == 'light' else '#2E2E2E'}; "
                 f"border: 1px solid {'#CCCCCC' if self.settings['theme'] == 'light' else '#444444'}; }}"
                 f"QPushButton:hover {{ background-color: {'#D3D3D3' if self.settings['theme'] == 'light' else '#555555'}; }}"
             )
             layout.addWidget(button)
-            if SHOW_BAR_CONTROL:
+            if self.settings.get('show_bar_control', False):
                 self.ide.terminal.log(f"BC: Added button{i} for task '{task.get('label', 'Unnamed Task')}'", "INFO")
         self.setLayout(layout)
         self.setFixedWidth((button_size + 2) * layout.count() + 12)
         if layout.count() == 0:
             self.hide()
-            if SHOW_BAR_CONTROL:
+            if self.settings.get('show_bar_control', False):
                 self.ide.terminal.log("BC: No valid buttons configured, hiding button bar", "ERROR")
         else:
             self.show()
-            if SHOW_BAR_CONTROL:
+            if self.settings.get('show_bar_control', False):
                 self.ide.terminal.log(f"BC: Button bar initialized with {layout.count()} buttons", "INFO")
 
     def run_task_with_focus(self, task):
@@ -839,7 +930,7 @@ class FloatingButtonBar(QWidget):
         self.ide.setFocus()
         self.ide.activateWindow()
         self.ide.raise_()
-        if SHOW_BAR_CONTROL:
+        if show_bar_control:
             self.ide.terminal.log("BC: Task executed, focus shifted to IDE", "INFO")
 
     def start_drag(self):
@@ -847,35 +938,35 @@ class FloatingButtonBar(QWidget):
             self.is_dragging = True
             self.grabMouse()
             self.setCursor(Qt.OpenHandCursor)
-            if SHOW_BAR_CONTROL:
+            if show_bar_control:
                 self.ide.terminal.log("BC: Hold timer expired, starting drag", "INFO")
 
     def eventFilter(self, obj, event):
         if obj == self or isinstance(obj, QPushButton):
             if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
-                if SHOW_BAR_CONTROL:
+                if show_bar_control:
                     self.ide.terminal.log(f"BC: Mouse press detected at {event.globalPos()} on {'bar' if obj == self else 'button'}", "INFO")
                 self.drag_start_position = event.globalPos() - self.pos()
                 self.is_dragging = False
                 self.hold_timer.start(self.hold_threshold)
                 return False  # Allow button to process click
             elif event.type() == QEvent.MouseMove:
-                if SHOW_BAR_CONTROL:
+                if show_bar_control:
                     self.ide.terminal.log(f"BC: Mouse move detected at {event.globalPos()}, is_dragging: {self.is_dragging}", "INFO")
                 if self.is_dragging and self.drag_start_position is not None:
                     new_pos = event.globalPos() - self.drag_start_position
-                    if SHOW_BAR_CONTROL:
+                    if show_bar_control:
                         self.ide.terminal.log(f"BC: Raw new_pos: {new_pos}", "INFO")
                     parent_rect = self.ide.geometry()
                     screen = QApplication.primaryScreen().availableGeometry()
                     button_size = self.settings["button_bar"].get("size", 24)
                     x = max(parent_rect.left(), min(new_pos.x(), parent_rect.right() - self.width()))
                     y = max(screen.top(), min(new_pos.y(), screen.bottom() - button_size))
-                    if SHOW_BAR_CONTROL:
+                    if show_bar_control:
                         self.ide.terminal.log(f"BC: Constrained pos: [{x}, {y}], parent_rect: {parent_rect}, screen: {screen}", "INFO")
                     self.move(x, y)
                     self.settings["button_bar"]["position"] = [self.x(), self.y()]
-                    if SHOW_BAR_CONTROL:
+                    if show_bar_control:
                         self.ide.terminal.log(f"BC: Button bar moved to [{self.x()}, {self.y()}]", "INFO")
                     return True
             elif event.type() == QEvent.MouseButtonRelease and event.button() == Qt.LeftButton:
@@ -891,10 +982,10 @@ class FloatingButtonBar(QWidget):
                     self.ide.setFocus()
                     self.ide.activateWindow()
                     self.ide.raise_()
-                    if SHOW_BAR_CONTROL:
+                    if show_bar_control:
                         self.ide.terminal.log(f"BC: Settings saved with position [{self.x()}, {self.y()}]", "INFO")
                         self.ide.terminal.log("BC: Drag completed, focus shifted to IDE", "INFO")
-                if SHOW_BAR_CONTROL:
+                if show_bar_control:
                     self.ide.terminal.log(f"BC: Mouse released, was_dragging: {was_dragging}", "INFO")
                 return False  # Allow button to process release for click
         return super().eventFilter(obj, event)
@@ -936,6 +1027,13 @@ class BackgroundWidget(QWidget):
             painter.fillRect(self.rect(), bg_color)
         painter.end()
 
+class CustomTasksMenu(QMenu):
+    def __init__(self, title, parent=None):
+        super().__init__(title, parent)
+        self.underline_labels = {}  # Map QAction to label for underlining
+
+
+
 class IDE(QMainWindow):
     def __init__(self, filename=None):
         super().__init__()
@@ -963,6 +1061,14 @@ class IDE(QMainWindow):
             "tasks_file": os.path.join(config_dir, "tasks.json"),
             "last_folder": os.path.expanduser("~"),
             "recent_files_path": self.recent_files_path,
+            "show_hl_info": False,
+            "show_font_control": False,
+            "show_bar_control": False,
+            "show_file_info": False,
+            "show_task_info": False,
+            "show_terminal_info": False,
+            "show_rules_info": False,
+            "highlight_timer_interval": 100,
             "button_bar": {
                 "button1": "[F5]:hexflash.png",
                 "button2": "[F6]:hex.png",
@@ -972,7 +1078,7 @@ class IDE(QMainWindow):
                 "position": []
             }
         }
-        self.first_time_settings = False  # Flag to indicate first-time settings creation
+        self.first_time_settings = False
         self.recent_files = []
         self.file_cache = {}
         self.history = {}
@@ -984,12 +1090,14 @@ class IDE(QMainWindow):
         self.show_terminal_action = None
         self.line_numbers_action = None
         self.task_output_cache = []
+        self.task_number_mapping = {}  # Map single char (1-9, A-Z) to task
+        self.task_selection_mode = False  # Flag for F4 task selection
         self.terminal = TerminalWindow()
         self.dock = QDockWidget("Terminal", self)
         self.dock.setObjectName("TerminalDock")
         self.dock.setWidget(self.terminal)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.dock)
-        if SHOW_TERMINAL_INFO:
+        if self.settings.get('show_terminal_info', False):
             self.terminal.log(f"Initialized Terminal dock with objectName: {self.dock.objectName()}", "INFO")
         self.background_widget = BackgroundWidget(self)
         self.setCentralWidget(self.background_widget)
@@ -1006,6 +1114,159 @@ class IDE(QMainWindow):
                                "QTextEdit { background: transparent; }")
         self.central_layout.addWidget(self.tabs, 1)
         self.tabs.tabBar().tabBarClicked.connect(self.update_background)
+        icon_path = resource_path("app_icon.ico")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+        else:
+            self.terminal.log(f"Application icon not found at {icon_path}", "ERROR")
+        self.check_file_timer = QTimer(self)
+        self.check_file_timer.timeout.connect(self.check_all_files)
+        if self.settings["check_external_modifications"]:
+            self.check_file_timer.start(5000)
+        else:
+            self.check_file_timer.stop()
+        self.button_bar = None
+        self._tasks_loaded = False
+        # Initialize ide_tasks_menu as CustomTasksMenu
+        self.ide_tasks_menu = CustomTasksMenu("IDE &Tasks", self)
+        self.ide_tasks_menu.setFont(QFont("Arial", self.settings["ui_font_size"]))
+        # self.terminal.log(f"Tasks: ide_tasks_menu type before init_ui: {type(self.ide_tasks_menu).__name__}", "INFO")
+        self.init_ui()
+        # self.terminal.log(f"Tasks: ide_tasks_menu type after init_ui: {type(self.ide_tasks_menu).__name__}", "INFO")
+        self.load_settings()
+        self.load_and_populate_tasks()
+        self.apply_theme()
+        self.apply_terminal_settings()
+        self.apply_logging_settings()
+        self.init_button_bar()
+        if filename and os.path.exists(filename):
+            self.open_file_by_path(filename)
+        if self.first_time_settings and not filename:
+            self.open_demo_files()
+        self.background_widget.update()
+
+
+    def keyPressEvent(self, event):
+        if self.task_selection_mode:
+            key_text = event.text().upper()
+            if self.settings.get('show_task_info', False):
+                self.terminal.log(f"Key event: text='{key_text}', key={event.key()}", "INFO")
+            if key_text in self.task_number_mapping:
+                task = self.task_number_mapping[key_text]
+                self.run_task(task)
+                if self.settings.get('show_task_info', False):
+                    self.terminal.log(f"Task '{task.get('label', 'Unnamed Task')}' executed via F4 + {key_text}", "INFO")
+                self.task_selection_mode = False
+                event.accept()
+                return
+            elif key_text.isalnum():
+                if self.settings.get('show_task_info', False):
+                    self.terminal.log(f"Invalid task selection: {key_text}", "ERROR")
+                self.task_selection_mode = False
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
+    def check_all_file_changes(self):
+        """Check all open tabs for external file modifications."""
+        for i in range(self.tabs.count()):
+            text_edit = self.tabs.widget(i)
+            if isinstance(text_edit, CustomTextEdit):
+                self.check_file_changes(text_edit)
+
+    def activate_task_selection_mode(self):
+        """Activate task selection mode to allow single-character key selection after F4."""
+        self.task_selection_mode = True
+        if self.settings.get('show_task_info', False):
+            self.terminal.log("Task selection mode activated with F4, press a number (1-9) or letter (A-Z) to select a task", "INFO")
+        tasks_menu = None
+        for action in self.menuBar().actions():
+            if action.menu() and action.text() == "Tasks":
+                tasks_menu = action.menu()
+                break
+        if tasks_menu:
+            pos = self.menuBar().actionGeometry(action).bottomLeft()
+            tasks_menu.popup(self.menuBar().mapToGlobal(pos))
+        self.setFocus()
+
+    def __OLDinit__(self, filename=None):
+        super().__init__()
+        self.setWindowTitle(f"GCBASIC Essential IDE : Build {BUILD_NUMBER}")
+        config_dir = os.path.expanduser("~/.superide")
+        gcbasic_path = os.path.normpath(os.environ.get("GCBASIC_INSTALL_PATH", os.path.expanduser("~")))
+        self.recent_files_path = os.path.join(gcbasic_path, "GCstudio.mrf.json")
+        self.settings = {
+            "theme": "light",
+            "line_numbers": True,
+            "word_wrap": False,
+            "show_info": True,
+            "show_errors": True,
+            "save_confirmation": True,
+            "window_size": [800, 600],
+            "window_position": [0, 0],
+            "ui_font_size": 12,
+            "editor_font_size": 12,
+            "indent_size": 4,
+            "goto_marker_duration": 3,
+            "showTerminal": True,
+            "terminal_size_percentage": 30,
+            "language_file": os.path.join(config_dir, "GCB.tmLanguage.json"),
+            "check_external_modifications": True,
+            "tasks_file": os.path.join(config_dir, "tasks.json"),
+            "last_folder": os.path.expanduser("~"),
+            "recent_files_path": self.recent_files_path,
+            "show_hl_info": False,  # Default if missing
+            "show_font_control": False,  # Default if missing
+            "show_bar_control": False,  # Default if missing
+            "show_file_info": False,  # Default if missing
+            "show_task_info": False,  # Default if missing
+            "show_terminal_info": False,  # Default if missing
+            "show_rules_info": False,  # Default if missing
+            "highlight_timer_interval": 100,  # Default if missing
+            "button_bar": {
+                "button1": "[F5]:hexflash.png",
+                "button2": "[F6]:hex.png",
+                "button3": "[F7]:asm.png",
+                "button4": "[F1]:help.png",
+                "size": 24,
+                "position": []
+            }
+        }
+        self.first_time_settings = False
+        self.recent_files = []
+        self.file_cache = {}
+        self.history = {}
+        self.file_states = {}
+        self.file_menu = None
+        self.last_search = None
+        self.info_action = None
+        self.error_action = None
+        self.show_terminal_action = None
+        self.line_numbers_action = None
+        self.task_output_cache = []
+        self.terminal = TerminalWindow()
+        self.dock = QDockWidget("Terminal", self)
+        self.dock.setObjectName("TerminalDock")
+        self.dock.setWidget(self.terminal)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.dock)
+        if self.settings.get('show_terminal_info', False):
+            self.terminal.log(f"Initialized Terminal dock with objectName: {self.dock.objectName()}", "INFO")
+        self.background_widget = BackgroundWidget(self)
+        self.setCentralWidget(self.background_widget)
+        self.central_layout = QVBoxLayout(self.background_widget)
+        self.central_layout.setContentsMargins(0, 0, 0, 0)
+        self.central_layout.setSpacing(0)
+        self.tabs = QTabWidget()
+        self.tabs.setTabsClosable(True)
+        self.tabs.setMovable(True)
+        self.tabs.tabCloseRequested.connect(self.update_background_after_close)
+        self.tabs.setStyleSheet("QTabWidget::pane { background: transparent; border: 0; } "
+                               "QTabBar::tab { background: transparent; } "
+                               "QTabWidget > QWidget > QWidget { background: transparent; } "
+                               "QTextEdit { background: transparent; }")
+        self.central_layout.addWidget(self.tabs, 1)
+        self.tabs.tabBar().tabBarClicked.connect(self.update_background)
+        icon_path = resource_path("app_icon.ico")
         icon_path = resource_path("app_icon.ico")
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
@@ -1046,7 +1307,7 @@ class IDE(QMainWindow):
             file_path = os.path.join(demo_dir, demo_file)
             if os.path.exists(file_path):
                 self.open_file_by_path(file_path)
-                if SHOW_FILE_INFO:
+                if show_file_info:
                     self.terminal.log(f"Opened demo file: {file_path}", "INFO")
             else:
                 self.terminal.log(f"Demo file not found: {file_path}", "ERROR")
@@ -1072,8 +1333,11 @@ class IDE(QMainWindow):
         menubar = self.menuBar()
         self.file_menu = menubar.addMenu("&File")
         edit_menu = menubar.addMenu("&Edit")
-        self.ide_tasks_menu = menubar.addMenu("IDE &Tasks")
         settings_menu = menubar.addMenu("&IDE Settings")
+        # Use existing CustomTasksMenu for IDE &Tasks
+        tasks_action = QAction("IDE &Tasks", self)
+        tasks_action.setMenu(self.ide_tasks_menu)
+        menubar.addAction(tasks_action)
         help_menu = menubar.addMenu("&Help")
         new_action = QAction("&New", self)
         new_action.setShortcut("Ctrl+N")
@@ -1115,7 +1379,6 @@ class IDE(QMainWindow):
         self.open_tasks_action.setShortcut("F4")
         self.open_tasks_action.triggered.connect(self.open_tasks_menu)
         self.addAction(self.open_tasks_action)
-        self.populate_tasks_menu()
         undo_action = QAction("&Undo", self)
         undo_action.setShortcut("Ctrl+Z")
         undo_action.triggered.connect(self.undo)
@@ -1174,13 +1437,11 @@ class IDE(QMainWindow):
         comment_action.setShortcut("Ctrl+/")
         comment_action.triggered.connect(self.toggle_comment)
         edit_menu.addAction(comment_action)
-
         # Add repaint highlighting shortcut without menu item
         repaint_highlight_action = QAction("Repaint Highlighting", self)
         repaint_highlight_action.setShortcut("Ctrl+Shift+R")
         repaint_highlight_action.triggered.connect(self.repaint_highlighting)
         self.addAction(repaint_highlight_action)
-
         appearance_menu = settings_menu.addMenu("&Appearance")
         editor_menu = settings_menu.addMenu("&Editor")
         logging_menu = settings_menu.addMenu("&Logging")
@@ -1189,12 +1450,9 @@ class IDE(QMainWindow):
         ui_font_action = QAction("&UI Font Size", self)
         ui_font_action.triggered.connect(self.set_ui_font_size)
         appearance_menu.addAction(ui_font_action)
-    
-        # New font chooser action
         editor_font_action = QAction("&Editor Font", self)
         editor_font_action.triggered.connect(self.set_editor_font)
         appearance_menu.addAction(editor_font_action)
-
         editor_font_action = QAction("&Editor Font Size", self)
         editor_font_action.triggered.connect(self.set_editor_font_size)
         appearance_menu.addAction(editor_font_action)
@@ -1271,7 +1529,6 @@ class IDE(QMainWindow):
         license_action = QAction("&License", self)
         license_action.triggered.connect(self.show_license)
         help_menu.addAction(license_action)
-        
         help_menu.addSeparator()
         report_issue_action = QAction("&Report Issue", self)
         report_issue_action.triggered.connect(lambda: self.open_url("https://github.com/GreatCowBASIC/GCBIDE/issues"))
@@ -1279,7 +1536,6 @@ class IDE(QMainWindow):
         latest_release_action = QAction("&Latest Release", self)
         latest_release_action.triggered.connect(lambda: self.open_url("https://github.com/GreatCowBASIC/GCBIDE/releases"))
         help_menu.addAction(latest_release_action)
-                
         help_menu.addSeparator()
         manage_language_action = QAction("&Manage Language File", self)
         manage_language_action.triggered.connect(self.open_language_file)
@@ -1359,14 +1615,14 @@ class IDE(QMainWindow):
             button_bar_settings.get(f"button{i}", "").strip() != ""
             for i in range(1, 5)
         )
-        if SHOW_BAR_CONTROL:
+        if show_bar_control:
             self.terminal.log(f"Button bar settings: {button_bar_settings}", "INFO")
         if not has_valid_button:
             if self.button_bar:
                 self.button_bar.hide()
                 self.button_bar.deleteLater()
                 self.button_bar = None
-            if SHOW_BAR_CONTROL:
+            if show_bar_control:
                 self.terminal.log("No non-empty button configurations found, button bar not shown", "INFO")
             return
         if self.button_bar:
@@ -1389,11 +1645,11 @@ class IDE(QMainWindow):
             position = button_bar_settings.get("position", [])
             if not position or len(position) != 2:
                 pos_x, pos_y = default_x, default_y
-                if SHOW_BAR_CONTROL:
+                if show_bar_control:
                     self.terminal.log(f"Using default position: [{pos_x}, {pos_y}]", "INFO")
             else:
                 pos_x, pos_y = position
-                if SHOW_BAR_CONTROL:
+                if show_bar_control:
                     self.terminal.log(f"Using saved position: [{pos_x}, {pos_y}]", "INFO")
             parent_rect = self.geometry()
             screen = QApplication.primaryScreen().availableGeometry()
@@ -1401,7 +1657,7 @@ class IDE(QMainWindow):
             pos_y = max(screen.top(), min(pos_y, screen.bottom() - button_size))
             self.button_bar.move(pos_x, pos_y)
             self.button_bar.settings["button_bar"]["position"] = [pos_x, pos_y]
-            if SHOW_BAR_CONTROL:
+            if show_bar_control:
                 self.terminal.log(f"Button bar positioned at: [{pos_x}, {pos_y}]", "INFO")
 
     def reset_button_bar_position(self):
@@ -1430,18 +1686,17 @@ class IDE(QMainWindow):
             self.settings["button_bar"]["size"] = int(size)
             self.save_settings()
             self.init_button_bar()
-            if SHOW_BAR_CONTROL:
+            if show_bar_control:
                 self.terminal.log(f"Button bar icon size set to {size}", "INFO")
 
     def populate_tasks_menu(self):
         """Populate the IDE Tasks menu with tasks from tasks.json, deferring file loading."""
         self.ide_tasks_menu.clear()        
-        # Defer tasks loading until load_and_populate_tasks() is called after load_settings()
+        # Force task loading if not loaded
         if not hasattr(self, '_tasks_loaded') or not self._tasks_loaded:
-            if SHOW_FILE_INFO:
-                self.terminal.log("Tasks not loaded yet, will be populated after settings load", "INFO")
-            action = self.ide_tasks_menu.addAction("Tasks loading...")
-            action.setEnabled(False)
+            if self.settings.get('show_file_info', False):
+                self.terminal.log("Tasks not loaded, forcing load in populate_tasks_menu", "INFO")
+            self.load_and_populate_tasks()
             return
     
         tasks_file = self.settings.get("tasks_file")        
@@ -1458,20 +1713,41 @@ class IDE(QMainWindow):
                 action = self.ide_tasks_menu.addAction("No tasks available")
                 action.setEnabled(False)
             else:
+                # Unicode bold mapping for 0-9 and A-Z
+                bold_map = {
+                    '0': '𝟎', '1': '𝟏', '2': '𝟐', '3': '𝟑', '4': '𝟒', '5': '𝟓',
+                    '6': '𝟔', '7': '𝟕', '8': '𝟖', '9': '𝟗',
+                    'A': '𝐀', 'B': '𝐁', 'C': '𝐂', 'D': '𝐃', 'E': '𝐄',
+                    'F': '𝐅', 'G': '𝐆', 'H': '𝐇', 'I': '𝐈', 'J': '𝐉',
+                    'K': '𝐊', 'L': '𝐋', 'M': '𝐌', 'N': '𝐍', 'O': '𝐎',
+                    'P': '𝐏', 'Q': '𝐐', 'R': '𝐑', 'S': '𝐒', 'T': '𝐓',
+                    'U': '𝐔', 'V': '𝐕', 'W': '𝐖', 'X': '𝐗', 'Y': '𝐘', 'Z': '𝐙'
+                }
+                number_chars = [str(i) for i in range(0, 10)] + [chr(i) for i in range(65, 91)]  # 0-9, A-Z
+                index = 0
                 for task in tasks:
+                    char = number_chars[index]
+                    index = index + 1
                     label = task.get("label", "Unnamed Task")
+                    label = char + ": " + label
                     if isinstance(label, list):
                         label = label[0] if label else "Unnamed Task"
                     if isinstance(label, str):
                         label = re.sub(r'\[.*?\]', '', label).strip()
                         if not label:
                             label = "Unnamed Task"
-                    action = QAction(label, self)
+                    # Bold the first character using Unicode
+                    bold_char = bold_map.get(label[0], label[0])  # Use bold Unicode char if available
+                    display_label = bold_char + label[1:]  # Combine with rest of label
+                    action = QAction(self)
+                    action.setText(display_label)
+                    if self.settings.get('show_task_info', False):
+                        self.terminal.log(f"Tasks: Set label '{display_label}' for action (original: '{label}')", "INFO")
                     action.triggered.connect(lambda checked, t=task: self.run_task(task=t))
                     shortcut = task.get("shortcut")
                     if shortcut:
                         action.setShortcut(shortcut)
-                        if SHOW_HL_INFO:
+                        if self.settings.get('show_hl_info', False):
                             self.terminal.log(f"Assigned shortcut '{shortcut}' to task '{label}'", "INFO")
                     self.ide_tasks_menu.addAction(action)
         except Exception as e:
@@ -1479,9 +1755,69 @@ class IDE(QMainWindow):
             action = self.ide_tasks_menu.addAction("Error loading tasks")
             action.setEnabled(False)
 
+    def open_tasks_menu(self):
+        if not self.ide_tasks_menu:
+            self.terminal.log("IDE Tasks menu not initialized", "ERROR")
+            return
+        try:
+            self.populate_tasks_menu()
+            action = self.ide_tasks_menu.menuAction()
+            pos = self.menuBar().actionGeometry(action).topLeft()
+            global_pos = self.menuBar().mapToGlobal(QPoint(pos.x(), pos.y() + self.menuBar().height()))
+
+            # Create event filter to capture key presses
+            class KeyFilter(QObject):
+                def __init__(self, menu, parent):
+                    super().__init__(parent)
+                    self.menu = menu
+                    self.parent = parent
+
+                def eventFilter(self, obj, event):
+                    if event.type() == QEvent.KeyPress:
+                        key_text = event.text().upper()
+                        if self.parent.settings.get('show_task_info', False):
+                            self.parent.terminal.log(f"Tasks: Key pressed in menu: '{key_text}'", "INFO")
+                        # Map Unicode bold characters to regular characters
+                        bold_to_regular_map = {
+                            '𝟎': '0', '𝟏': '1', '𝟐': '2', '𝟑': '3', '𝟒': '4',
+                            '𝟓': '5', '𝟔': '6', '𝟕': '7', '𝟖': '8', '𝟗': '9',
+                            '𝐀': 'A', '𝐁': 'B', '𝐂': 'C', '𝐃': 'D', '𝐄': 'E',
+                            '𝐅': 'F', '𝐆': 'G', '𝐇': 'H', '𝐈': 'I', '𝐉': 'J',
+                            '𝐊': 'K', '𝐋': 'L', '𝐌': 'M', '𝐍': 'N', '𝐎': 'O',
+                            '𝐏': 'P', '𝐐': 'Q', '𝐑': 'R', '𝐒': 'S', '𝐓': 'T',
+                            '𝐔': 'U', '𝐕': 'V', '𝐖': 'W', '𝐗': 'X', '𝐘': 'Y', '𝐙': 'Z'
+                        }
+                        for action in self.menu.actions():
+                            if action.text():
+                                label_first_char = action.text()[0]
+                                regular_char = bold_to_regular_map.get(label_first_char, label_first_char)
+                                if regular_char.upper() == key_text:
+                                    self.menu.close()  # Close menu first
+                                    action.trigger()  # Then trigger the task
+                                    if self.parent.settings.get('show_task_info', False):
+                                        self.parent.terminal.log(f"Tasks: Triggered action '{action.text()}'", "INFO")
+                                    return True
+                        if key_text.isalnum():
+                            self.parent.terminal.log(f"Tasks: Invalid key '{key_text}' for menu selection", "ERROR")
+                            self.menu.close()
+                            return True
+                    return False
+
+            # Install event filter and show menu
+            key_filter = KeyFilter(self.ide_tasks_menu, self)
+            self.ide_tasks_menu.installEventFilter(key_filter)
+            self.ide_tasks_menu.popup(global_pos)
+
+            # Clean up event filter after menu closes
+            self.ide_tasks_menu.aboutToHide.connect(lambda: self.ide_tasks_menu.removeEventFilter(key_filter))
+
+        except Exception as e:
+            self.terminal.log(f"Error opening IDE Tasks menu: {str(e)}", "ERROR")
+
     def load_and_populate_tasks(self):
         """Load tasks file and populate tasks menu after settings are loaded."""
-        self.terminal.log("Loading and populating tasks", "INFO")
+        if show_task_info:
+            self.terminal.log("Loading and populating tasks", "INFO")
         try:
             tasks_file = self.get_tasks_file_path()
             if tasks_file:
@@ -1493,7 +1829,7 @@ class IDE(QMainWindow):
             self._tasks_loaded = False
             self.populate_tasks_menu()  # Populate with error state
 
-    def open_tasks_menu(self):
+    def OLD_open_tasks_menu(self):
         if not self.ide_tasks_menu:
             self.terminal.log("IDE Tasks menu not initialized", "ERROR")
             return
@@ -1526,13 +1862,13 @@ class IDE(QMainWindow):
                     key_num = match.group(3)
                     shortcut = f"shift+f{key_num}" if shift else f"f{key_num}"
                     task["shortcut"] = shortcut.lower()
-                    if SHOW_BAR_CONTROL:
+                    if show_bar_control:
                         self.terminal.log(f"Parsed shortcut '{shortcut.lower()}' for task '{label}'", "INFO")
                 else:
                     task["shortcut"] = None
-                    if SHOW_BAR_CONTROL:
+                    if show_bar_control:
                         self.terminal.log(f"No valid shortcut found in task label '{label}'", "INFO")
-            if SHOW_BAR_CONTROL:            
+            if show_bar_control:            
                 self.terminal.log(f"Loaded {len(tasks)} tasks from {file_path}: {[task.get('label', 'Unnamed Task') for task in tasks]}", "INFO")
             return tasks
         except json.JSONDecodeError as e:
@@ -1565,7 +1901,7 @@ class IDE(QMainWindow):
                 return None
         
         if os.path.exists(tasks_file):
-            if SHOW_BAR_CONTROL:
+            if show_bar_control:
                 self.terminal.log(f"Using tasks file from {tasks_file}", "INFO")
             return tasks_file
         else:
@@ -1659,7 +1995,7 @@ class IDE(QMainWindow):
                 self.terminal.log(f"Executing request: Opened file in new tab: {local_file_path}", "INFO")
                 if local_file_path and os.path.exists(local_file_path):
                     self.open_file_by_path(local_file_path)
-                    if SHOW_FILE_INFO:
+                    if show_file_info:
                         self.terminal.log(f"Opened file in new tab: {local_file_path}", "INFO")
                 else:
                     self.terminal.log(f"File not found for new tab: {local_file_path}", "ERROR")
@@ -1669,7 +2005,7 @@ class IDE(QMainWindow):
                     asm_file = os.path.splitext(current_tab.file_path)[0] + ".asm"
                     if os.path.exists(asm_file):
                         self.open_file_by_path(asm_file)
-                        if SHOW_FILE_INFO:
+                        if show_file_info:
                             self.terminal.log(f"Opened ASM file in new tab: {asm_file}", "INFO")
                     else:
                         self.terminal.log(f"ASM file not found: {asm_file}", "ERROR")
@@ -1790,7 +2126,7 @@ class IDE(QMainWindow):
                         shell=True
                     )
                 if self.settings["show_info"]:
-                    if SHOW_TASK_INFO:
+                    if show_task_info:
                         self.terminal.addItem(f"[INFO] Launched Task: {' '.join(full_command)}")
                         self.task_output_cache.append(f"[INFO] Launched Task: {' '.join(full_command)}")
                     self.terminal.addItem("")
@@ -1823,7 +2159,7 @@ class IDE(QMainWindow):
             self.error_action.setChecked(self.settings["show_errors"])
         if self.show_terminal_action:
             self.show_terminal_action.setChecked(self.settings["showTerminal"])
-        self.terminal.log(f"Applied logging settings: \n\tshow Info \t\t{self.settings['show_info']} \n\tshow Errors: \t{self.settings['show_errors']} \n\tshow Terminal: \t{self.settings['showTerminal']}", "INFO")
+        self.terminal.log(f"Applied logging settings: \n\tshow Info: \t\t{self.settings['show_info']} \n\tshow Errors: \t{self.settings['show_errors']} \n\tshow Terminal: \t{self.settings['showTerminal']}", "INFO")
 
     def apply_text_settings(self, text_edit=None):
         font_db = QFontDatabase()
@@ -1868,7 +2204,7 @@ class IDE(QMainWindow):
             text_edit.line_number_area.repaint()
             text_edit.viewport().update()
             text_edit.setStyleSheet(f"background: transparent; color: {fg_color};")
-            if SHOW_FILE_INFO:
+            if show_file_info:
                 self.terminal.log(f"Applied editor settings to text edit - font: {self.settings['editor_font']}, font_size: {self.settings['editor_font_size']}, line_numbers: {self.settings['line_numbers']}", "INFO")
                 self.terminal.log(f"Line Numbering set to font: {self.settings['editor_font']}", "INFO")
 
@@ -1884,7 +2220,7 @@ class IDE(QMainWindow):
             os.makedirs(os.path.dirname(self.recent_files_path), exist_ok=True)
             with open(self.recent_files_path, "w", encoding="utf-8") as f:
                 json.dump(recent_data, f, indent=4)
-            if SHOW_FILE_INFO:
+            if show_file_info:
                 self.terminal.log(f"Saved recent files to {self.recent_files_path}", "INFO")
         except Exception as e:
             self.terminal.log(f"Error saving recent files to {self.recent_files_path}: {str(e)}", "ERROR")
@@ -1934,9 +2270,9 @@ class IDE(QMainWindow):
         self.apply_text_settings(text_edit)
         text_edit.highlighter.schedule_highlighting()
         text_edit.document().setModified(False)
-        if SHOW_HL_INFO:
+        if show_hl_info:
             self.terminal.log(f"HL: Opened file {file_path} - undoRedoEnabled: {text_edit.isUndoRedoEnabled()}, isUndoAvailable: {text_edit.document().isUndoAvailable()}, isModified: {text_edit.document().isModified()}", "INFO")
-        if SHOW_FILE_INFO:            
+        if show_file_info:            
             self.terminal.log(f"Loaded file {file_path} with line_numbers: {self.settings['line_numbers']}", "INFO")
         if normalized_path in [self.normalize_path(entry["path"]) for entry in self.recent_files]:
             self.recent_files = [entry for entry in self.recent_files if self.normalize_path(entry["path"]) != normalized_path]
@@ -2173,26 +2509,26 @@ class IDE(QMainWindow):
         current_tab = self.tabs.currentWidget()
         if current_tab:
             doc = current_tab.document()
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.terminal.log(f"Undo requested - isUndoAvailable: {doc.isUndoAvailable()}, modified: {doc.isModified()}", "INFO")
             if doc.isUndoAvailable():
                 current_tab.undo()
                 current_tab.highlighter.schedule_highlighting()
             else:
-                if SHOW_HL_INFO:
+                if show_hl_info:
                     self.terminal.log("HL: Undo not available", "INFO")
 
     def redo(self):
         current_tab = self.tabs.currentWidget()
         if current_tab:
             doc = current_tab.document()
-            if SHOW_HL_INFO:
+            if show_hl_info:
                 self.terminal.log(f"Redo requested - isRedoAvailable: {doc.isRedoAvailable()}, modified: {doc.isModified()}", "INFO")
             if doc.isRedoAvailable():
                 current_tab.redo()
                 current_tab.highlighter.schedule_highlighting()
             else:
-                if SHOW_HL_INFO:
+                if show_hl_info:
                     self.terminal.log("HL: Redo not available", "INFO")
 
     def cut(self):
@@ -2652,7 +2988,7 @@ class IDE(QMainWindow):
             with open(settings_path, "w", encoding="utf-8") as f:
                 json.dump(self.settings, f, indent=4)
             os.chmod(settings_path, 0o600)
-            if SHOW_FILE_INFO:
+            if show_file_info:
                 self.terminal.log(f"Saved settings to {settings_path} with editor_font: {self.settings['editor_font']}", "INFO")
         except Exception as e:
             self.terminal.log(f"Error saving settings to {settings_path}: {str(e)}", "ERROR")
@@ -2671,7 +3007,7 @@ class IDE(QMainWindow):
         try:
             with open(settings_path, "r", encoding="utf-8") as f:
                 loaded_settings = json.load(f)
-                if SHOW_BAR_CONTROL:
+                if show_bar_control:
                     self.terminal.log(f"Loaded settings from {settings_path}: {loaded_settings}", "INFO")
                 # Load all keys with error handling
                 for key in loaded_settings:
@@ -2732,7 +3068,7 @@ class IDE(QMainWindow):
                             if path != "" and os.path.exists(path)
                         ]
                         self.recent_files = self.recent_files[:10]
-                        if SHOW_FILE_INFO:
+                        if show_file_info:
                             self.terminal.log(f"Loaded recent files from {self.recent_files_path}", "INFO")
                     else:
                         self.recent_files = []
@@ -2745,7 +3081,7 @@ class IDE(QMainWindow):
                 if "dock_state" in loaded_settings:
                     try:
                         self.restoreState(QByteArray.fromBase64(loaded_settings["dock_state"].encode()))
-                        if SHOW_TERMINAL_INFO:
+                        if show_terminal_info:
                             self.terminal.log("Restored Terminal dock position", "INFO")
                     except Exception as e:
                         self.terminal.log(f"Error restoring dock state: {str(e)}", "ERROR")
@@ -2816,7 +3152,7 @@ class IDE(QMainWindow):
         y = (screen.height() - height) // 2  # Center vertically
         self.settings["window_size"] = [width, height]
         self.settings["window_position"] = [x, y]
-        if SHOW_FILE_INFO:
+        if show_file_info:
             self.terminal.log(f"Set default geometry - size: {width}x{height}, position: [{x}, {y}]", "INFO")
             
 
@@ -2880,7 +3216,7 @@ class IDE(QMainWindow):
         self.apply_text_settings(text_edit)
         text_edit.highlighter.schedule_highlighting()
         text_edit.document().setModified(False)
-        if SHOW_HL_INFO:
+        if show_hl_info:
             self.terminal.log(f"HL: Created new file - undoRedoEnabled: {text_edit.isUndoRedoEnabled()}, isUndoAvailable: {text_edit.document().isUndoAvailable()}, isModified: {text_edit.document().isModified()}", "INFO")
         self.terminal.log(f"Created new file with line_numbers: {self.settings['line_numbers']}", "INFO")
         self.background_widget.update()
