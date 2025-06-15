@@ -1,6 +1,12 @@
 = GCBASIC Essential IDE Change Log
 :toc:
 
+== Build 15.06.2025
+
+New:
+
+- Revised IDE Tasks menu to support mouse activation of menu items.  The previous version only worked when F4 activated the menu items.
+
 
 == Build 01.06.2025
 
