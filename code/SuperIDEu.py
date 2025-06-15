@@ -124,7 +124,7 @@ from collections import deque
 import uuid
 
 #build number
-BUILD_NUMBER = "06.01.2025"
+BUILD_NUMBER = "06.15.2025"
 
 #Controlled in the JSON setting file.  These initialise only.
 show_hl_info = False  
@@ -636,30 +636,6 @@ class CustomTextEdit(QTextEdit):
         if not self._is_highlighting:
             self.highlighter.schedule_highlighting()
 
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_F4:
-            if show_hl_info:
-                self.ide.terminal.log("HL: F4 intercepted in CustomTextEdit, triggering open_tasks_action", "INFO")
-            self.ide.open_tasks_action.trigger()
-            return
-        if event.key() == Qt.Key_Z and event.modifiers() == Qt.ControlModifier:
-            if show_hl_info:
-                self.ide.terminal.log("HL: Ctrl+Z intercepted in CustomTextEdit, forwarding to IDE.undo", "INFO")
-            self.ide.undo()
-            return
-        if event.key() == Qt.Key_Tab:
-            self.ide.indent()
-            return
-        elif event.key() == Qt.Key_Backtab:
-            self.ide.dedent()
-            return
-        if show_hl_info:
-            self.ide.terminal.log(f"HL: Key pressed - key: {event.key()}, text: '{event.text()}', undoAvailable: {self.document().isUndoAvailable()}", "INFO")
-        super().keyPressEvent(event)
-        if event.text() or event.key() in (Qt.Key_Backspace, Qt.Key_Delete):
-            if not self._is_highlighting:
-                self.highlighter.schedule_highlighting()
-
     def on_text_changed(self):
         if not self._is_highlighting:
             self._is_highlighting = True
@@ -1031,6 +1007,42 @@ class CustomTasksMenu(QMenu):
     def __init__(self, title, parent=None):
         super().__init__(title, parent)
         self.underline_labels = {}  # Map QAction to label for underlining
+        self.task_number_mapping = {}  # Map single char (1-9, A-Z) to task
+        self.parent_ide = parent  # Store reference to IDE for logging and task execution
+
+    def keyPressEvent(self, event):
+        key_text = event.text().upper()
+        if self.parent_ide.settings.get('show_task_info', False):
+            self.parent_ide.terminal.log(f"Tasks: Key pressed in CustomTasksMenu: '{key_text}'", "INFO")
+        # Map Unicode bold characters to regular characters
+        bold_to_regular_map = {
+            '𝟎': '0', '𝟏': '1', '𝟐': '2', '𝟑': '3', '𝟒': '4',
+            '𝟓': '5', '𝟔': '6', '𝟇': '7', '𝟈': '8', '𝟉': '9',
+            '𝐀': 'A', '𝐁': 'B', '𝐂': 'C', '𝐃': 'D', '𝐄': 'E',
+            '𝐅': 'F', '𝐆': 'G', '𝐇': 'H', '𝐈': 'I', '𝐉': 'J',
+            '𝐊': 'K', '𝐋': 'L', '𝐌': 'M', '𝐍': 'N', '𝐎': 'O',
+            '𝐏': 'P', '𝐐': 'Q', '𝐑': 'R', '𝐒': 'S', '𝐓': 'T',
+            '𝐔': 'U', '𝐕': 'V', '𝐖': 'W', '𝐗': 'X', '𝐘': 'Y', '𝐙': 'Z'
+        }
+        for action in self.actions():
+            if action.text():
+                label_first_char = action.text()[0]
+                regular_char = bold_to_regular_map.get(label_first_char, label_first_char)
+                if regular_char.upper() == key_text:
+                    if self.parent_ide.settings.get('show_task_info', False):
+                        self.parent_ide.terminal.log(f"Tasks: Triggered action '{action.text()}' via key '{key_text}'", "INFO")
+                    action.trigger()
+                    self.close()
+                    event.accept()
+                    return
+        if key_text.isalnum():
+            if self.parent_ide.settings.get('show_task_info', False):
+                self.parent_ide.terminal.log(f"Tasks: Invalid key '{key_text}' for menu selection", "ERROR")
+            self.close()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
 
 
 
@@ -1173,21 +1185,6 @@ class IDE(QMainWindow):
             text_edit = self.tabs.widget(i)
             if isinstance(text_edit, CustomTextEdit):
                 self.check_file_changes(text_edit)
-
-    def activate_task_selection_mode(self):
-        """Activate task selection mode to allow single-character key selection after F4."""
-        self.task_selection_mode = True
-        if self.settings.get('show_task_info', False):
-            self.terminal.log("Task selection mode activated with F4, press a number (1-9) or letter (A-Z) to select a task", "INFO")
-        tasks_menu = None
-        for action in self.menuBar().actions():
-            if action.menu() and action.text() == "Tasks":
-                tasks_menu = action.menu()
-                break
-        if tasks_menu:
-            pos = self.menuBar().actionGeometry(action).bottomLeft()
-            tasks_menu.popup(self.menuBar().mapToGlobal(pos))
-        self.setFocus()
 
     def __OLDinit__(self, filename=None):
         super().__init__()
@@ -1690,22 +1687,22 @@ class IDE(QMainWindow):
                 self.terminal.log(f"Button bar icon size set to {size}", "INFO")
 
     def populate_tasks_menu(self):
-        """Populate the IDE Tasks menu with tasks from tasks.json, deferring file loading."""
-        self.ide_tasks_menu.clear()        
-        # Force task loading if not loaded
+        """Populate the IDE Tasks menu with tasks from tasks.json."""
+        self.ide_tasks_menu.clear()
+        self.ide_tasks_menu.task_number_mapping.clear()  # Clear existing mapping
         if not hasattr(self, '_tasks_loaded') or not self._tasks_loaded:
-            if self.settings.get('show_file_info', False):
+            if self.settings.get('show_task_info', False):
                 self.terminal.log("Tasks not loaded, forcing load in populate_tasks_menu", "INFO")
             self.load_and_populate_tasks()
             return
-    
-        tasks_file = self.settings.get("tasks_file")        
+
+        tasks_file = self.settings.get("tasks_file")
         if not tasks_file:
             self.terminal.log("No tasks file path available", "ERROR")
             action = self.ide_tasks_menu.addAction("No tasks available")
             action.setEnabled(False)
             return
-        
+
         try:
             tasks = self.parse_tasks_json(tasks_file)
             if not tasks:
@@ -1726,8 +1723,11 @@ class IDE(QMainWindow):
                 number_chars = [str(i) for i in range(0, 10)] + [chr(i) for i in range(65, 91)]  # 0-9, A-Z
                 index = 0
                 for task in tasks:
+                    if index >= len(number_chars):
+                        self.terminal.log(f"Too many tasks, skipping task '{task.get('label', 'Unnamed Task')}'", "WARNING")
+                        break
                     char = number_chars[index]
-                    index = index + 1
+                    index += 1
                     label = task.get("label", "Unnamed Task")
                     label = char + ": " + label
                     if isinstance(label, list):
@@ -1737,8 +1737,8 @@ class IDE(QMainWindow):
                         if not label:
                             label = "Unnamed Task"
                     # Bold the first character using Unicode
-                    bold_char = bold_map.get(label[0], label[0])  # Use bold Unicode char if available
-                    display_label = bold_char + label[1:]  # Combine with rest of label
+                    bold_char = bold_map.get(char, char)
+                    display_label = bold_char + label[1:]
                     action = QAction(self)
                     action.setText(display_label)
                     if self.settings.get('show_task_info', False):
@@ -1747,14 +1747,17 @@ class IDE(QMainWindow):
                     shortcut = task.get("shortcut")
                     if shortcut:
                         action.setShortcut(shortcut)
-                        if self.settings.get('show_hl_info', False):
+                        if self.settings.get('show_task_info', False):
                             self.terminal.log(f"Assigned shortcut '{shortcut}' to task '{label}'", "INFO")
                     self.ide_tasks_menu.addAction(action)
+                    self.ide_tasks_menu.task_number_mapping[char.upper()] = task
+                    if self.settings.get('show_task_info', False):
+                        self.terminal.log(f"Tasks: Mapped key '{char}' to task '{label}'", "INFO")
         except Exception as e:
             self.terminal.log(f"Error populating tasks menu: {str(e)}", "ERROR")
             action = self.ide_tasks_menu.addAction("Error loading tasks")
             action.setEnabled(False)
-
+            
     def open_tasks_menu(self):
         if not self.ide_tasks_menu:
             self.terminal.log("IDE Tasks menu not initialized", "ERROR")
@@ -1764,56 +1767,10 @@ class IDE(QMainWindow):
             action = self.ide_tasks_menu.menuAction()
             pos = self.menuBar().actionGeometry(action).topLeft()
             global_pos = self.menuBar().mapToGlobal(QPoint(pos.x(), pos.y() + self.menuBar().height()))
-
-            # Create event filter to capture key presses
-            class KeyFilter(QObject):
-                def __init__(self, menu, parent):
-                    super().__init__(parent)
-                    self.menu = menu
-                    self.parent = parent
-
-                def eventFilter(self, obj, event):
-                    if event.type() == QEvent.KeyPress:
-                        key_text = event.text().upper()
-                        if self.parent.settings.get('show_task_info', False):
-                            self.parent.terminal.log(f"Tasks: Key pressed in menu: '{key_text}'", "INFO")
-                        # Map Unicode bold characters to regular characters
-                        bold_to_regular_map = {
-                            '𝟎': '0', '𝟏': '1', '𝟐': '2', '𝟑': '3', '𝟒': '4',
-                            '𝟓': '5', '𝟔': '6', '𝟕': '7', '𝟖': '8', '𝟗': '9',
-                            '𝐀': 'A', '𝐁': 'B', '𝐂': 'C', '𝐃': 'D', '𝐄': 'E',
-                            '𝐅': 'F', '𝐆': 'G', '𝐇': 'H', '𝐈': 'I', '𝐉': 'J',
-                            '𝐊': 'K', '𝐋': 'L', '𝐌': 'M', '𝐍': 'N', '𝐎': 'O',
-                            '𝐏': 'P', '𝐐': 'Q', '𝐑': 'R', '𝐒': 'S', '𝐓': 'T',
-                            '𝐔': 'U', '𝐕': 'V', '𝐖': 'W', '𝐗': 'X', '𝐘': 'Y', '𝐙': 'Z'
-                        }
-                        for action in self.menu.actions():
-                            if action.text():
-                                label_first_char = action.text()[0]
-                                regular_char = bold_to_regular_map.get(label_first_char, label_first_char)
-                                if regular_char.upper() == key_text:
-                                    self.menu.close()  # Close menu first
-                                    action.trigger()  # Then trigger the task
-                                    if self.parent.settings.get('show_task_info', False):
-                                        self.parent.terminal.log(f"Tasks: Triggered action '{action.text()}'", "INFO")
-                                    return True
-                        if key_text.isalnum():
-                            self.parent.terminal.log(f"Tasks: Invalid key '{key_text}' for menu selection", "ERROR")
-                            self.menu.close()
-                            return True
-                    return False
-
-            # Install event filter and show menu
-            key_filter = KeyFilter(self.ide_tasks_menu, self)
-            self.ide_tasks_menu.installEventFilter(key_filter)
             self.ide_tasks_menu.popup(global_pos)
-
-            # Clean up event filter after menu closes
-            self.ide_tasks_menu.aboutToHide.connect(lambda: self.ide_tasks_menu.removeEventFilter(key_filter))
-
         except Exception as e:
             self.terminal.log(f"Error opening IDE Tasks menu: {str(e)}", "ERROR")
-
+            
     def load_and_populate_tasks(self):
         """Load tasks file and populate tasks menu after settings are loaded."""
         if show_task_info:
@@ -2079,6 +2036,8 @@ class IDE(QMainWindow):
                             time.sleep(1.0)
                     else:
                         self.terminal.log(f"Output file not found: {output_file}", "ERROR")
+                        self.terminal.log(f"Version of GCBASIC compiler must be greater than build 1483 : {output_file}", "ERROR")
+                        
                         break
                 errors_file = re.sub(r'gcbasic\.exe', 'errors.txt', command.strip('"'), flags=re.IGNORECASE)
                 for _ in range(5):
